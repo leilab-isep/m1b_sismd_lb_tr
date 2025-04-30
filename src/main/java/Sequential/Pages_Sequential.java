@@ -1,20 +1,22 @@
+package Sequential;
+
 import java.io.FileInputStream;
 import java.util.Iterator;
 import javax.xml.stream.events.XMLEvent;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 
-class Pages implements Iterable<Page> {
+class Pages_Sequential implements Iterable<Page_Sequential> {
 
   private final int maxPages;
   private final String fileName;
 
-  public Pages(int maxPages, String fileName) {
+  public Pages_Sequential(int maxPages, String fileName) {
     this.maxPages = maxPages;
     this.fileName = fileName;
   }
 
-  private class PageIterator implements Iterator<Page> {
+  private class PageIterator implements Iterator<Page_Sequential> {
 
     private XMLEventReader reader;
     private int remainingPages;
@@ -29,7 +31,7 @@ class Pages implements Iterable<Page> {
       return remainingPages > 0; 
     }
 
-    public Page next() {
+    public Page_Sequential next() {
       try {
         XMLEvent event;
         String title = "";
@@ -49,7 +51,7 @@ class Pages implements Iterable<Page> {
                 } else if (event.isEndElement()) {
                   if (event.asEndElement().getName().getLocalPart().equals("page")) {
                     --remainingPages;
-                    return new Page(title, text);
+                    return new Page_Sequential(title, text);
                   }
                 }
               }
@@ -68,7 +70,7 @@ class Pages implements Iterable<Page> {
     public void remove() { throw new UnsupportedOperationException(); }
   }
 
-  public Iterator<Page> iterator() {
+  public Iterator<Page_Sequential> iterator() {
     try {
       return new PageIterator();
     } catch (Exception e) {

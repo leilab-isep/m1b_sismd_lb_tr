@@ -1,11 +1,13 @@
+package Sequential;
+
 import java.text.BreakIterator;
 import java.util.Iterator;
 
-class Words implements Iterable<String> {
+class Words_Sequential implements Iterable<String> {
 
     private final String text;
 
-    public Words(String text) {
+    public Words_Sequential(String text) {
         this.text = text;
     }
 

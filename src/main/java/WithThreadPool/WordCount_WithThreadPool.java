@@ -1,10 +1,12 @@
-import java.util.stream.Collectors;
+package WithThreadPool;
+
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class WordCount {
+public class WordCount_WithThreadPool {
     static final int maxPages = 100000;
     static final String fileName = "enwiki.xml";
 
@@ -14,12 +16,12 @@ public class WordCount {
     public static void main(String[] args) throws Exception {
 
         long start = System.currentTimeMillis();
-        Iterable<Page> pages = new Pages(maxPages, fileName);
+        Iterable<Page_WithThreadPool> pages = new Pages_WithThreadPool(maxPages, fileName);
         int processedPages = 0;
-        for (Page page : pages) {
+        for (Page_WithThreadPool page : pages) {
             if (page == null)
                 break;
-            Iterable<String> words = new Words(page.getText());
+            Iterable<String> words = new Words_WithThreadPool(page.getText());
             for (String word : words)
                 if (word.length() > 1 || word.equals("a") || word.equals("I"))
                     countWord(word);
