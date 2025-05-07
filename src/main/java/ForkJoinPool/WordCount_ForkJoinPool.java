@@ -1,10 +1,9 @@
 package ForkJoinPool;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class WordCount_ForkJoinPool {
     static final int maxPages = 100000;
@@ -15,18 +14,23 @@ public class WordCount_ForkJoinPool {
 
     public static void main(String[] args) throws Exception {
 
+        ForkJoinPool pool = new ForkJoinPool();
+
         long start = System.currentTimeMillis();
         Iterable<Page_ForkJoinPool> pages = new Pages_ForkJoinPool(maxPages, fileName);
+
+
+        List<Page_ForkJoinPool> pageList =
+                StreamSupport.stream(pages.spliterator(), false)
+                        .collect(Collectors.toList());
+
+
         int processedPages = 0;
-        for (Page_ForkJoinPool page : pages) {
-            if (page == null)
-                break;
-            Iterable<String> words = new Words_ForkJoinPool(page.getText());
-            for (String word : words)
-                if (word.length() > 1 || word.equals("a") || word.equals("I"))
-                    countWord(word);
-            ++processedPages;
-        }
+        ParsePage_ForkJoinPool parsePage = new ParsePage_ForkJoinPool(pageList, counts, processedPages);
+        pool.invoke(parsePage);
+        processedPages = parsePage.join();
+
+
         long end = System.currentTimeMillis();
         System.out.println("Processed pages: " + processedPages);
         System.out.println("Elapsed time: " + (end - start) + "ms");
