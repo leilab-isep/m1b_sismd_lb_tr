@@ -1,10 +1,8 @@
 package Sequential;
 
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.LinkedHashMap;
+import java.util.stream.StreamSupport;
 
 public class WordCount_Sequential {
     static final int maxPages = 100000;
@@ -14,11 +12,16 @@ public class WordCount_Sequential {
             new HashMap<String, Integer>();
 
     public static void main(String[] args) throws Exception {
-
-        long start = System.currentTimeMillis();
         Iterable<Page_Sequential> pages = new Pages_Sequential(maxPages, fileName);
+        List<Page_Sequential> pageList =
+                StreamSupport.stream(pages.spliterator(), false)
+                        .collect(Collectors.toList());
+        //Parsing
+        long start = System.currentTimeMillis();
+
+
         int processedPages = 0;
-        for (Page_Sequential page : pages) {
+        for (Page_Sequential page : pageList) {
             if (page == null)
                 break;
             Iterable<String> words = new Words_Sequential(page.getText());
