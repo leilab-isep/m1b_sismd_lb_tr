@@ -1,10 +1,8 @@
 package WithoutThreadPool;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class WordCount_WithoutThreadPool {
     static final int maxPages = 100000;
@@ -15,32 +13,55 @@ public class WordCount_WithoutThreadPool {
 
     public static void main(String[] args) throws Exception {
 
-        long start = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         Iterable<Page_WithoutThreadPool> pages = new Pages_WithoutThreadPool(maxPages, fileName);
-        int processedPages = 0;
-        for (Page_WithoutThreadPool page : pages) {
-            if (page == null)
-                break;
-            Iterable<String> words = new Words_WithoutThreadPool(page.getText());
-            for (String word : words)
-                if (word.length() > 1 || word.equals("a") || word.equals("I"))
-                    countWord(word);
-            ++processedPages;
+        int numberOfThreads = Runtime.getRuntime().availableProcessors();
+
+        List<Page_WithoutThreadPool> pageList =
+                StreamSupport.stream(pages.spliterator(), false)
+                        .collect(Collectors.toList());
+
+        int pageLength = pageList.size();
+
+        int chunkSize = (pageLength + numberOfThreads - 1) / numberOfThreads;
+
+        List<Thread> threadList = new ArrayList<>();
+        List<ParsePage_WithoutThreadPool> parsePageList = new ArrayList<>();
+
+        for (int i = 0; i < numberOfThreads; i++) {
+            int start = i * chunkSize;
+            int end = Math.min(pageLength, start + chunkSize);
+            if (start >= end) break;
+
+            List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
+
+            ParsePage_WithoutThreadPool parsePage = new ParsePage_WithoutThreadPool(pageSubList);
+            Thread thread = new Thread(parsePage);
+            threadList.add(thread);
+            parsePageList.add(parsePage);
         }
-        long end = System.currentTimeMillis();
-        System.out.println("Processed pages: " + processedPages);
-        System.out.println("Elapsed time: " + (end - start) + "ms");
+
+        for (int i = 0; i < threadList.size(); i++) {
+            threadList.get(i).start();
+        }
+
+        for (Thread thread : threadList) {
+            thread.join();
+        }
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("Processed pages: " + pageLength);
+        System.out.println("Elapsed time: " + (endTime - startTime) + "ms");
+
 
         LinkedHashMap<String, Integer> commonWords = new LinkedHashMap<>();
+        for (ParsePage_WithoutThreadPool parser : parsePageList) {
+            for (Map.Entry<String, Integer> entry : parser.getLocalCounts().entrySet()) {
+                counts.merge(entry.getKey(), entry.getValue(), Integer::sum);
+            }
+        }
         counts.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).forEachOrdered(x -> commonWords.put(x.getKey(), x.getValue()));
         commonWords.entrySet().stream().limit(3).collect(Collectors.toList()).forEach(x -> System.out.println("Word: \'" + x.getKey() + "\' with total " + x.getValue() + " occurrences!"));
     }
 
-    private static void countWord(String word) {
-        Integer currentCount = counts.get(word);
-        if (currentCount == null)
-            counts.put(word, 1);
-        else
-            counts.put(word, currentCount + 1);
-    }
 }

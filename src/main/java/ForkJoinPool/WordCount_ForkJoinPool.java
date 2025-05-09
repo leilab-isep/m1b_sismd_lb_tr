@@ -16,6 +16,7 @@ public class WordCount_ForkJoinPool {
     public static void main(String[] args) throws Exception {
 
         ForkJoinPool pool = new ForkJoinPool();
+        long start = System.currentTimeMillis();
 
         Iterable<Page_ForkJoinPool> pages = new Pages_ForkJoinPool(maxPages, fileName);
 
@@ -23,7 +24,6 @@ public class WordCount_ForkJoinPool {
         List<Page_ForkJoinPool> pageList =
                 StreamSupport.stream(pages.spliterator(), false)
                         .collect(Collectors.toList());
-        long start = System.currentTimeMillis();
 
 
         int processedPages = 0;
