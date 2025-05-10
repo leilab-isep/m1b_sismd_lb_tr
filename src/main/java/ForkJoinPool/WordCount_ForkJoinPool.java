@@ -15,6 +15,8 @@ public class WordCount_ForkJoinPool {
 
     public static void main(String[] args) throws Exception {
 
+        Thread.sleep(3000);
+
         ForkJoinPool pool = new ForkJoinPool();
         long start = System.currentTimeMillis();
 

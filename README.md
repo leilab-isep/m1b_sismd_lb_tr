@@ -4,7 +4,7 @@
 
 **Title**: Optimizing Large-Scale Data Processing on Multicore Systems  
 **Course**: Sistemas Multinúcleo e Distribuídos  
-**Program**: Mestrado em Engenharia Informática  
+**Program**: Mestrado em Engenharia Informática - Engenharia de Software
 **Institution**: Instituto Superior de Engenharia do Porto
 
 **Authors**:
@@ -76,7 +76,6 @@ compare how different concurrency strategies affect performance, scalability, an
 
 - Final version used per-task `HashMap`s and **merged results recursively**, which significantly improved performance:
 
-
 > ✅ Final version was among the **fastest**  
 > ✅ Demonstrated excellent scalability for divide-and-conquer workloads
 
@@ -92,26 +91,180 @@ compare how different concurrency strategies affect performance, scalability, an
 
 ---
 
-### ✅ Garbage Collector Tuning
+## Garbage Collector Tuning
 
-- GC logging was enabled using:
-  ```bash
-  -Xlog:gc*:gc.log
-  ```
+### Fork Join Pool
 
-- Tools used:
-    - VisualVM
-    - [GCEasy.io](https://gceasy.io/)
-    - Java Flight Recorder (JFR) + Java Mission Control (JMC)
-- We experimented with:
-    - **G1GC (default)**: Balanced throughput and pause times
-    - **ParallelGC**: Faster for short-lived objects
+#### Garbage First Garbage Collector (G1GC)
 
-> ✅ GC tuning reduced memory overhead and improved runtime performance
->
->
-> ✅ GCEasy.io provided helpful GC timeline and pause visualizations
->
+##### First try
+
+In my first try, I used this run configuration:
+
+```
+-Xms7g -Xmx7g -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Xlog:gc*:gc.log 
+```
+
+These were my results with 13457 ms using GCeasy tool
+
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.51 GB                |
+|                                | Young Generation Peak       | 1.87 GB                |
+|                                | Avg Promotion Rate          | 188 MB/sec             |
+|                                | Old Generation Allocated    | 4.49 GB                |
+|                                | Old Generation Peak         | 3.07 GB                |
+|                                | Humongous Object Peak       | 312 MB                 |
+|                                | Meta Space Allocated        | 10.62 MB               |
+|                                | Meta Space Peak             | 10.25 MB               |
+|                                | Total Allocated (Heap+Meta) | 7.01 GB                |
+|                                | Total Peak (Heap+Meta)      | 4.59 GB                |
+| **Key Performance Indicators** | Throughput                  | 90.839%                |
+|                                | CPU Time                    | 18s 970ms              |
+|                                | User Time                   | 15s 310ms              |
+|                                | System Time                 | 3s 660ms               |
+|                                | Avg GC Pause Time           | 33.0 ms                |
+|                                | Max GC Pause Time           | 180 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 49 (98.0%)             |
+|                                | 100 - 200 ms Pauses         | 1 (2.0%)               |
+| **GC Event Causes**            | G1 Evacuation Pause         | 47 events (avg 34.7ms) |
+|                                | G1 Humongous Allocation     | 1 event (20.0ms)       |
+| **Object Allocation Stats**    | Total Created Bytes         | 29.29 GB               |
+|                                | Total Promoted Bytes        | 3.31 GB                |
+|                                | Avg Creation Rate           | 1.62 GB/sec            |
+
+#### Interpretation:
+
+- Throughput seems low at 90.839%.
+- Max pause at 180s was a bit too much.
+
+![VisualVM](images/ForkJoinPool_G1GC.png)
+
+#### Second Try
+
+To reduce the Throughput I decided to increase heap size from 7 GBs to 9 GBs
+To reduce the pax pause I decreased the max GC pause time to 80 ms.
+
+```
+-Xms9g -Xmx9g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
+```
+
+These were my results with 12527ms
+
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 1.81 GB                |
+|                                | Young Generation Peak       | 1.7 GB                 |
+|                                | Old Generation Allocated    | 7.19 GB                |
+|                                | Old Generation Peak         | 3.02 GB                |
+|                                | Humongous Object Peak       | 208 MB                 |
+|                                | Meta Space Allocated        | 10.56 MB               |
+|                                | Meta Space Peak             | 10.23 MB               |
+|                                | Total Allocated (Heap+Meta) | 9.01 GB                |
+|                                | Total Peak (Heap+Meta)      | 4.82 GB                |
+| **Key Performance Indicators** | Throughput                  | 90.87%                 |
+|                                | CPU Time                    | 15s 530ms              |
+|                                | User Time                   | 12s 990ms              |
+|                                | System Time                 | 2s 540ms               |
+|                                | Avg GC Pause Time           | 32.3 ms                |
+|                                | Max GC Pause Time           | 110 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 47 (97.92%)            |
+|                                | 100 - 200 ms Pauses         | 1 (2.08%)              |
+| **GC Event Causes**            | G1 Evacuation Pause         | 48 events (avg 32.3ms) |
+| **Object Allocation Stats**    | Total Created Bytes         | 29.16 GB               |
+|                                | Total Promoted Bytes        | 3.22 GB                |
+|                                | Avg Creation Rate           | 1.72 GB/sec            |
+|                                | Avg Promotion Rate          | 194.38 MB/sec          |
+
+![VM](images/ForkJoinPool_G1GC_2Try.png)
+
+#### Interpretation:
+
+- Throughput improved but still is low at 90.87%.
+- Max pause was solved
+
+#### Third Try
+
+To reduce the Throughput I decided to increase heap size from 9 GBs to 15GBs
+
+```
+-Xms15g -Xmx15g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
+```
+
+These were my results with 11877ms:
+
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 1.75 GB                |
+|                                | Young Generation Peak       | 1.42 GB                |
+|                                | Old Generation Allocated    | 13.25 GB               |
+|                                | Old Generation Peak         | 3.16 GB                |
+|                                | Humongous Object Peak       | 328 MB                 |
+|                                | Meta Space Allocated        | 8.19 MB                |
+|                                | Meta Space Peak             | 7.97 MB                |
+|                                | Total Allocated (Heap+Meta) | 15.01 GB               |
+|                                | Total Peak (Heap+Meta)      | 4.48 GB                |
+| **Key Performance Indicators** | Throughput                  | 90.565%                |
+|                                | CPU Time                    | 16s 250ms              |
+|                                | User Time                   | 14s 390ms              |
+|                                | System Time                 | 1s 860ms               |
+|                                | Avg GC Pause Time           | 38.7 ms                |
+|                                | Max GC Pause Time           | 130 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 39 (97.5%)             |
+|                                | 100 - 200 ms Pauses         | 1 (2.5%)               |
+| **GC Event Causes**            | G1 Evacuation Pause         | 40 events (avg 38.7ms) |
+| **Object Allocation Stats**    | Total Created Bytes         | 29.37 GB               |
+|                                | Total Promoted Bytes        | 3.39 GB                |
+|                                | Avg Creation Rate           | 1.79 GB/sec            |
+|                                | Avg Promotion Rate          | 211.22 MB/sec          |
+
+![VM](images/ForkJoinPool_G1GC_3Try.png)
+
+#### Interpretation:
+
+- Throughput lowered but still is low at 90.565%, meaning no matter how much memory I allocate, it doesn't get lower.
+
+---
+
+#### Parallel Garbage Collector (ParallelGC)
+
+I used this run configuration:
+
+```
+-Xms7g -Xmx7g -XX:+UseParallelGC
+```
+
+With that said, it took `11921 ms` to finish.
+
+![VisualVM](images/ForkJoinPool_ParallelGC.png)
+
+#### Z Garbage Collector (ZGC)
+
+I used this run configuration:
+
+```
+-Xms7g -Xmx7g -XX:+UseZGC
+```
+
+With that said, it took `18406 ms` to finish.
+
+![VisualVM](images/ForkJoinPool_ZGC.png)
+
+#### Serial Garbage Collector (SGC)
+
+I used this run configuration:
+
+```
+-Xms7g -Xmx7g -XX:+UseSerialGC
+```
+
+With that said, it took `17410 ms` to finish.
+
+![VisualVM](images/ForkJoinPool_SGC.png)
+
+
+
+
 
 ---
 
