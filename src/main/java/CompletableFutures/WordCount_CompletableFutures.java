@@ -59,7 +59,6 @@ public class WordCount_CompletableFutures {
         Map<String,Integer> counts = globalFuture.get();
         ForkJoinPool.commonPool().awaitTermination(15, TimeUnit.SECONDS);
 
-
         long end = System.currentTimeMillis();
         System.out.println("Processed pages: " + processedPages);
         System.out.println("Elapsed time: " + (end - start) + "ms");

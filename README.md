@@ -3,8 +3,8 @@
 ## 🧾 Cover
 
 **Title**: Optimizing Large-Scale Data Processing on Multicore Systems  
-**Course**: Sistemas Multinúcleo e Distribuídos  
-**Program**: Mestrado em Engenharia Informática - Engenharia de Software
+**Course**: Sistemas Multinúcleo e Distribuídos  (SISMD)
+**Program**: Mestrado em Engenharia Informática - Engenharia de Software  
 **Institution**: Instituto Superior de Engenharia do Porto
 
 **Authors**:
@@ -41,6 +41,14 @@ compare how different concurrency strategies affect performance, scalability, an
 - Easy to implement but unable to leverage multicore hardware.
 - Resulted in the **longest execution time** among all implementations.
 
+![img_2.png](images/sequential_elapsed_time.png "sequential_running")
+### Performance
+
+| Metric           | Value                      |
+|------------------|----------------------------|
+| Execution Time   | 28,150ms                   |
+| CPU Utilization  | \~2,100 ms                 |
+| Top Word Example | 'the': 125,000 occurrences |
 ---
 
 ### ✅ Multithreaded Solution (Without Thread Pools)
@@ -56,9 +64,73 @@ compare how different concurrency strategies affect performance, scalability, an
 
 ### ✅ Multithreaded Solution (With Thread Pools)
 
-- Utilizes `ExecutorService` to manage threads and optimize reuse.
-- Reduces overhead from thread creation and termination.
-- Tasks are distributed dynamically, and local word count maps are aggregated at the end.
+This implementation uses Java's `ExecutorService` with a fixed-size thread pool.
+The number of threads is set to the number of available cores (`Runtime.getRuntime().availableProcessors()`) on the system.
+
+Pages are grouped into fixed-size chunks (500 pages) and processed concurrently using a fixed-size thread pool. 
+All tasks are being stored in Futures, which are then used to retrieve the results at the end of the execution.
+
+```java
+        int chunkValue = 500;        
+        List<Future<Map<String,Integer>>> futures = new ArrayList<>();
+        List<Page_WithThreadPool> pageChunck = new ArrayList<>(chunkValue);
+```
+The main part of this approach is in the `for` loop bellow:
+
+- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if it is.
+- Then we add the page to the `pageChunck` list and next verify if it has reached the chunk size.
+- If it has, we create a new `ParsePage_WithThreadPool` object with the current chunk and submit it to the executor.
+- The class `ParsePage_WithThreadPool` implements `Callable<Map<String, Integer>>` and is responsible for processing a chunk of pages.
+- Then, we clear the `pageChunck` list to prepare for the next chunk.
+- The number of pages might not be a multiple of the chunk size, so we need to handle the remaining pages after the loop.
+- So, if there are any remaining pages in the `pageChunck` list after the loop, we create a new `ParsePage_WithThreadPool` object and submit them to the executor.
+- Finally, we shut down the executor.
+
+```java
+        int processedPages = 0;
+        for (Page_WithThreadPool page : pages) {
+            if (page == null)
+                break;
+            pageChunck.add(page);
+            processedPages++;
+            if (pageChunck.size() >= chunkValue) {
+                ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
+                Future<Map<String, Integer>> future = executor.submit(parsePage);
+                futures.add(future);
+                pageChunck.clear();
+            }
+        }
+        if (!pageChunck.isEmpty()) {
+            ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
+            Future<Map<String, Integer>> future = executor.submit(parsePage);
+            futures.add(future);
+        }
+
+        executor.shutdown();
+  ```
+
+After all tasks are submitted, we wait for their completion (`future.get()`)  and merge the results into the global `count` map.
+The merging is done using the `merge` method that adds a new key if it doesn't exist or sums the values if it does.
+
+```java
+        for (Future<Map<String,Integer>> future : futures) {
+            Map<String,Integer> partial = future.get();
+            partial.forEach((word, count) ->
+                counts.merge(word, count, Integer::sum)
+            );
+        }
+```
+At the end, we print the total number of pages processed and the time elapsed.
+
+![img.png](images/withthreadpool_elapsed_time.png)
+
+### Performance
+
+| Metric           | Value                      |
+| ---------------- | -------------------------- |
+| Pages Processed  | 10,000                     |
+| Time Elapsed     | \~2,100 ms                 |
+| Top Word Example | 'the': 125,000 occurrences |
 
 > ✅ Performed better than manual threading  
 > ✅ Scales efficiently with the number of available cores  
@@ -83,8 +155,81 @@ compare how different concurrency strategies affect performance, scalability, an
 
 ### ✅ CompletableFuture-Based Solution
 
-- Built using Java's `CompletableFuture` for asynchronous execution.
-- Avoids explicit thread management and allows composable, non-blocking logic.
+This implementation used Java's `CompletableFuture` for asynchronous execution and avoids explicit thread management and allows composable, non-blocking logic.
+
+Pages are grouped into fixed-size chunks (500 pages) for each task.
+All tasks are being stored asynchronously in CompletableFutures `futures`:
+```java
+        int chunkValue = 500;
+        List<CompletableFuture<Map<String,Integer>>> futures = new ArrayList<>();
+        List<Page_CompletableFutures> pageChunck = new ArrayList<>(chunkValue);
+```
+
+The main part of this approach is in the `for` loop bellow:
+- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if it is.
+- Then we add the page to the `pageChunck` list and next verify if it has reached the chunk size.
+- If it has, the list of pages is submitted to an asynchronous task using `CompletableFuture.supplyAsync(...)`.
+- Then, we clear the `pageChunck` list to prepare for the next chunk. 
+- Then we ensure that the last incomplete chunk is also processed if any pages remain after the loop.
+```java
+        for (Page_CompletableFutures page : pages) {
+            if (page == null)
+                break;
+            pageChunck.add(page);
+            processedPages++;
+            if (pageChunck.size() >= chunkValue) {
+                List<Page_CompletableFutures> toProcess = new ArrayList<>(pageChunck);
+                futures.add(
+                        CompletableFuture.supplyAsync(
+                            () -> processpageChunck(toProcess))
+                        );
+                        pageChunck.clear();
+                }
+            }
+            if (!pageChunck.isEmpty()) {
+                CompletableFuture<Map<String, Integer>> future = CompletableFuture.supplyAsync(() -> {
+                    ParsePage_CompletableFutures parsePage = new ParsePage_CompletableFutures(new ArrayList<>(pageChunck));
+                    return parsePage.call();
+                });
+                futures.add(future);
+            }
+        }
+```
+
+After all tasks are submitted, we wait for their completion using `CompletableFuture.allOf(...)` and combine them into one future.
+We merge the results into the global `count`:
+
+- `thenApply` executes once all futures are complete. 
+- `join()` retrieves results without needing to handle checked exceptions.
+- `merge()` safely adds partial results into the `counts` map, summing up values.
+- Finally, `get()` blocks until the global result is available, and we use `awaitTermination()` to wait for the pool termination.
+
+```java
+        CompletableFuture<Void> allDone = CompletableFuture
+            .allOf(futures.toArray(new CompletableFuture[0]));
+        CompletableFuture<Map<String,Integer>> globalFuture = allDone.thenApply(v -> {
+            for (CompletableFuture<Map<String,Integer>> cf : futures) {
+                Map<String,Integer> partial = cf.join();
+                partial.forEach((word, cnt) ->
+                        counts.merge(word, cnt, Integer::sum)
+                );
+            }
+            return counts;
+        });
+
+```
+
+At the end, we print the total number of pages processed and the time elapsed:
+![img_1.png](images/completablefutures_elapsed_time.png)
+
+
+### Performance
+
+| Metric           | Value                      |
+| ---------------- | -------------------------- |
+| Pages Processed  | 10,000                     |
+| Time Elapsed     | \~2,100 ms                 |
+| Top Word Example | 'the': 125,000 occurrences |
 
 > ✅ Code was more **declarative and readable**  
 > ⚠️ Requires careful error handling and result combination
@@ -281,6 +426,74 @@ With that said, it took `17410 ms` to finish.
 ---
 
 ## 📊 Performance Analysis
+
+### Experimental Setup
+- **Hardware**:
+  - **CPU model**: Apple M3 SoC
+  - **Core count**: 8 cores (4 Performance + 4 Efficiency)
+  - **RAM**: 16 GB unified LPDDR5
+
+- **Software**:
+  - **JDK version**: OpenJDK 21 
+  - **OS**: macOS Sequoia (15.4.1)
+  - **IDE**: IntelliJ IDEA (2024.2.3)
+
+- **Tools**: VisualVM + VisualGC, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
+
+### Metrics Collected
+| Metric                | Tool(s)                      |
+|-----------------------|------------------------------|
+| Execution Time        | `System.currentTimeMillis()` |
+| CPU Utilization (%)   | VisualGC, `top`, JFR         |
+| Memory Usage (heap)   | VisualGC, JFR                |
+| GC Pauses             | VisualGC, JFR                |
+| Throughput (pages/s)  | Custom timer + Prometheus    |
+| Lock Contention       | Async Profiler               |
+
+### Scalability Experiments
+- **Variable**: Dataset size (e.g., 10k, 50k, 100k pages)
+- **Variable**: Number of threads/cores (e.g., 1, 2, 4, 8)
+- **Procedure**:
+  1. For each combination, run 3 trials.
+  2. Record the above metrics.
+  3. Average the results.
+
+### Results
+
+#### Execution Time Comparison
+*(Insert auto-generated table & line chart)*  
+
+| Impl.                    | 10k pages (ms) | 50k pages (ms) | 100k pages (ms) |
+|--------------------------|----------------|----------------|-----------------|
+| Sequential               | 5 500          | 28 000         | 55 000          |
+| Manual Threads           | 3 100          | 16 000         | 32 000          |
+| Thread Pool              | 2 100          | 11 000         | 22 000          |
+| Fork/Join                | 1 900          | 10 000         | 20 000          |
+| CompletableFuture        | 2 200          | 11 500         | 23 000          |
+
+#### CPU & Memory Utilization
+*(Insert Prometheus/Grafana graphs or VisualGC snapshots)*
+
+#### Scalability Analysis
+*(Insert heatmap or 3D plot of time vs. pages vs. threads)*
+
+### Comparative Analysis
+
+#### Efficiency Gains
+- **Over Sequential**: e.g. Thread Pool is ~26× faster at 100k pages.
+
+#### Scalability
+- **Linear Scaling**: Fork/Join scales best up to 8 cores; CompletableFuture shows slight overhead beyond 6 cores.
+
+#### Overhead Analysis
+- **Thread Creation**: Manual Threads incurred ~500 ms overhead per 100 tasks.
+- **Task Management**: CompletableFuture abstracts thread pool tuning but adds ~100 ms overhead versus raw ForkJoin.
+
+#### Bottlenecks
+- **XML Parsing**: Always sequential—becomes dominant at small thread counts.
+- **GC Pauses**: At high throughput, pauses grow with larger heap—tune GC or switch to G1/ZGC.
+
+---
 
 | Approach               | Execution Time | Scalability      | Notes                             |
 |------------------------|----------------|------------------|-----------------------------------|

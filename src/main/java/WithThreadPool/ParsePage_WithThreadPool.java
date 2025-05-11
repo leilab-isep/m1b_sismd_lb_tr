@@ -14,7 +14,7 @@ public class ParsePage_WithThreadPool implements Callable<Map<String,Integer>> {
 
 
     @Override
-    public Map<String, Integer> call() throws Exception {
+    public Map<String, Integer> call() {
         Map<String,Integer> localCounts = new HashMap<>();
         for (Page_WithThreadPool page : pageList) {
             Iterable<String> words = new Words_WithThreadPool(page.getText());
