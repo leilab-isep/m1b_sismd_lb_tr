@@ -818,11 +818,11 @@ This was because the heap size was not enough to handle the data, so for this pe
 Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 40 k, and 80 k pages:
 
 ***80k***
-![img.png](monitor_sequential_80k.png)
+![img.png](images/monitor_sequential_80k.png)
 ***40k***
-![img.png](monitor_sequential_40k.png)
+![img.png](images/monitor_sequential_40k.png)
 ***20k***
-![img.png](monitor_sequential_20k.png)
+![img.png](images/monitor_sequential_20k.png)
 
 > **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory footprint exceeded available heap.
 
@@ -842,9 +842,9 @@ Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 4
 
 This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory footprint—compared to the threaded approaches.
 
-![img.png](console_sequential_80k.png)
-![img.png](console_sequential_40k.png)
-![img.png](console_sequential_20k.png)
+![img.png](images/console_sequential_80k.png)
+![img.png](images/console_sequential_40k.png)
+![img.png](images/console_sequential_20k.png)
 
 ##### With Thread Pool
 
@@ -888,11 +888,11 @@ This table demonstrates near-linear scaling: CPU utilization stays high, GC rema
 Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 k, 40 k, and 80 k pages:
 
 ***80k***
-![img.png](monitor_fork_join_pool_80k.png)
+![img.png](images/monitor_fork_join_pool_80k.png)
 ***40k***
-![img.png](monitor_fork_join_pool_40k.png)
+![img.png](images/monitor_fork_join_pool_40k.png)
 ***20k***
-![img.png](monitor_fork_join_pool_20k.png).  
+![img.png](images/monitor_fork_join_pool_20k.png).  
 
 > **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the Fork/Join approach hit memory limits at this scale.
 
@@ -908,9 +908,9 @@ Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 
 - **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom than Thread-Pool at larger scales.
 
 
-![img.png](console_fork_join_pool_80k.png)
-![img_1.png](console_fork_join_pool_40k.png)
-![img.png](console_fork_join_pool_20k.png)
+![img.png](images/console_fork_join_pool_80k.png)
+![img_1.png](images/console_fork_join_pool_40k.png)
+![img.png](images/console_fork_join_pool_20k.png)
 
 ##### CompletableFuture
 
