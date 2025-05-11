@@ -16,11 +16,13 @@ public class WordCount_CompletableFutures {
         int numberOfThreads = Runtime.getRuntime().availableProcessors();
 
         Iterable<Page_CompletableFutures> pages = new Pages_CompletableFutures(maxPages, fileName);
+
         int chunkValue = 500;
         
         List<CompletableFuture<Map<String,Integer>>> futures = new ArrayList<>();
         List<Page_CompletableFutures> pageChunck = new ArrayList<>(chunkValue);
         int processedPages = 0;
+
 
         for (Page_CompletableFutures page : pages) {
             if (page == null) break;
@@ -67,6 +69,7 @@ public class WordCount_CompletableFutures {
         LinkedHashMap<String, Integer> commonWords = new LinkedHashMap<>();
         counts.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).forEachOrdered(x -> commonWords.put(x.getKey(), x.getValue()));
         commonWords.entrySet().stream().limit(4).collect(Collectors.toList()).forEach(x -> System.out.println("Word: \'" + x.getKey() + "\' with total " + x.getValue() + " occurrences!"));
+
     }
 
     private static Map<String,Integer> processpageChunck(List<Page_CompletableFutures> pages) {

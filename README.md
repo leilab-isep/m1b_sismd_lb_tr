@@ -766,7 +766,12 @@ throughput, pause times, and execution speed:
     - **OS**: macOS Sequoia (15.4.1)
     - **IDE**: IntelliJ IDEA (2024.2.3)
 
-- **Tools**: VisualVM + VisualGC, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
+- **Tools**: VisualVM, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
+- **Dataset**: Wikipedia XML dump max pages - 20k, 40k, 80k pages
+- **Running configuration**:
+```bash
+  -Xms10g -Xmx10g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log
+```
 
 ### Metrics Collected
 
@@ -794,17 +799,63 @@ throughput, pause times, and execution speed:
 
 *(Insert auto-generated table & line chart)*
 
-| Impl.             | 10k pages (ms) | 50k pages (ms) | 100k pages (ms) |
-|-------------------|----------------|----------------|-----------------|
-| Sequential        | 5 500          | 28 000         | 55 000          |
-| Manual Threads    | 3 100          | 16 000         | 32 000          |
-| Thread Pool       | 2 100          | 11 000         | 22 000          |
-| Fork/Join         | 1 900          | 10 000         | 20 000          |
-| CompletableFuture | 2 200          | 11 500         | 23 000          |
+| Impl.             | 20k pages (ms) | 40k pages (ms) | 80k pages (ms) |
+|-------------------|----------------|----------------|----------------|
+| Sequential        | 5 500          | 28 000         | 55 000         |
+| Manual Threads    | 3 100          | 16 000         | 32 000         |
+| Thread Pool       | 8 131          | 12 249         | 23 835         |
+| Fork/Join         | 1 900          | 10 000         | 20 000         |
+| CompletableFuture | 2 200          | 11 500         | 23 000         |
 
 #### CPU & Memory Utilization
 
-*(Insert Prometheus/Grafana graphs or VisualGC snapshots)*
+At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a `java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
+![img.png](temp/java_heap_space_error.png)
+This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 10k, 40k and 80k.   
+##### Sequential
+
+
+##### With Thread Pool
+
+Based on the VisualVM **Monitor** view for the Thread Pool WordCount run:
+
+###### VisualVM Monitor Snapshots 
+***80k***
+![img.png](images/monitor_with_thread_pool_80k.png)
+***40k***
+![img.png](images/monitor_with_thread_pool_40k.png)
+***20k***
+![img.png](images/monitor_with_thread_pool_20k.png)
+
+###### Scalability Analysis: Thread-Pool Runs
+
+| Pages  | CPU Peak | CPU Average | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|-------------|---------|-------------------------|-------------------------|
+| **20 k** | 75 %    | 60 %        | 1.3 %   | 2.6 GB → 3.0 GB         | 1.8 GB → 2.5 GB         |
+| **40 k** | 82.5 %  | 78 %        | 1.8 %   | 2.0 GB → 4.0 GB         | 1.4 GB → 2.9 GB         |
+| **80 k** | 78 %    | 70 %        | 7 %     | 2.8 GB → 4.0 GB         | 1.7 GB → 3.8 GB         |
+
+**Notes:**
+- **CPU**: All runs sustain high utilization, peaking above 75 % of the M3’s eight cores.
+- **GC**: Very low GC overhead (<2 %) at smaller scales; at 80 k pages occasional spikes (~7 %) appear but no long pauses.
+- **Heap**:
+  - Initial heap sizing grows with data volume (2–2.8 GB), and the JVM auto-expands up to the 4 GB cap as needed.
+  - Used-heap remains well below the cap at 20 k/40 k, but at 80 k it climbs to ~3.8 GB.
+
+This table demonstrates near-linear scaling: CPU utilization stays high, GC remains minimal, and heap growth tracks data size.
+
+![img.png](images/console_with_thread_pool_80k.png)
+
+![img.png](images/console_with_thread_pool_40k.png)
+
+![img.png](images/console_with_thread_pool_20k.png)
+
+##### Without Thread Pool
+
+##### Fork/Join
+
+##### CompletableFuture
+
 
 #### Scalability Analysis
 
