@@ -810,10 +810,41 @@ throughput, pause times, and execution speed:
 #### CPU & Memory Utilization
 
 At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a `java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
-![img.png](temp/java_heap_space_error.png)
+![img.png](images/java_heap_space_error.png)
 This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 10k, 40k and 80k.   
-##### Sequential
 
+##### Sequential
+###### VisualVM Monitor Snapshots
+Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 40 k, and 80 k pages:
+
+***80k***
+![img.png](monitor_sequential_80k.png)
+***40k***
+![img.png](monitor_sequential_40k.png)
+***20k***
+![img.png](monitor_sequential_20k.png)
+
+> **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory footprint exceeded available heap.
+
+| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|---------|---------|-------------------------|-------------------------|
+| **20 k** | 20 %     | 15 %    | 1.4 %   | 1.86 GB → 2.98 GB       | 0.78 GB → 2.6 GB        |
+| **40 k** | 22 %     | 15 %    | 0.3 %   | 4.29 GB → 4.29 GB       | 3.45 GB → 3.80 GB       |
+| **80 k** | 60 %     | 50 %    | 11.9 %  | 0.15 GB → 0.15 GB       | 0.04 GB → 0.04 GB       |
+
+**Interpretation:**
+- **CPU**: Remains low (≤ 20 %) until 80 k pages, where it spikes to ~60 % on a single core—no parallelism.
+- **GC**: Minimal at 20 k/40 k, but jumps at 80 k due to object churn before the OOME.
+- **Heap**:
+  - At 20 k, heap grows modestly.
+  - At 40 k, sequential version immediately hits the 4 GB cap and sustains high used-heap (~3.8 GB).
+  - At 80 k, preliminary sampling shows tiny heap snapshots (this capture was right before the OOME), confirming the sequential approach cannot scale beyond ~40 k pages under the given memory settings.
+
+This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory footprint—compared to the threaded approaches.
+
+![img.png](console_sequential_80k.png)
+![img.png](console_sequential_40k.png)
+![img.png](console_sequential_20k.png)
 
 ##### With Thread Pool
 
@@ -853,6 +884,33 @@ This table demonstrates near-linear scaling: CPU utilization stays high, GC rema
 ##### Without Thread Pool
 
 ##### Fork/Join
+
+Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 k, 40 k, and 80 k pages:
+
+***80k***
+![img.png](monitor_fork_join_pool_80k.png)
+***40k***
+![img.png](monitor_fork_join_pool_40k.png)
+***20k***
+![img.png](monitor_fork_join_pool_20k.png).  
+
+> **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the Fork/Join approach hit memory limits at this scale.
+
+| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|---------|---------|-------------------------|-------------------------|
+| **20 k** | 57 %    | ~56 %   | 0.7 %   | 2.6 GB → 4.0 GB         | 2.2 GB → 3.2 GB         |
+| **40 k** | 65 %    | ~60 %   | 5.9 %   | 3.7 GB → 4.0 GB         | 3.7 GB → 3.9 GB         |
+| **80 k** | 88 %    | ~75 %   | 12 %    | 2.5 GB → 4.0 GB         | 2.2 GB → 4.2 GB         |
+
+**Interpretation:**
+- **CPU** utilization scales up, peaking near full usage of available cores at 80 k pages.
+- **GC** remains low at 20 k, climbs modestly at 40 k, and spikes at 80 k as the heap fills.
+- **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom than Thread-Pool at larger scales.
+
+
+![img.png](console_fork_join_pool_80k.png)
+![img_1.png](console_fork_join_pool_40k.png)
+![img.png](console_fork_join_pool_20k.png)
 
 ##### CompletableFuture
 

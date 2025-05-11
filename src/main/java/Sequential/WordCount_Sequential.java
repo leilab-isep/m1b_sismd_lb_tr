@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class WordCount_Sequential {
-    static final int maxPages = 5000;
+    static final int maxPages = 20000;
     static final String fileName = "enwiki-20250201.xml";
 
     private static final HashMap<String, Integer> counts =
