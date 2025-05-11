@@ -55,13 +55,70 @@ compare how different concurrency strategies affect performance, scalability, an
 
 ### ✅ Multithreaded Solution (Without Thread Pools)
 
-- Workload is manually split among threads.
-- Each thread processes a subset of the pages and computes a local word count using a `HashMap`.
-- After all threads finish, the results are merged.
+This implementation manually creates and manages a fixed number of threads, each responsible for processing a distinct
+subset of the XML pages.
 
-> ✅ Improved over the sequential version  
+The number of threads is determined by the number of available CPU cores:
+
+```java
+int numberOfThreads = Runtime.getRuntime().availableProcessors();
+```
+
+The list of pages is split into **equal-sized chunks**, one per thread:
+
+```java
+int chunkSize = (pageLength + numberOfThreads - 1) / numberOfThreads;
+```
+
+For each chunk:
+
+- A new `ParsePage_WithoutThreadPool` object is created to process the assigned pages.
+- A `Thread` is explicitly created and started with this task.
+
+```java
+List<Thread> threadList = new ArrayList<>();
+List<ParsePage_WithoutThreadPool> parsePageList = new ArrayList<>();
+
+for(int i = 0;i<numberOfThreads;i++){
+  int start = i * chunkSize;
+  int end = Math.min(pageLength, start + chunkSize);
+  List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
+  ParsePage_WithoutThreadPool parsePage = new ParsePage_WithoutThreadPool(pageSubList);
+  Thread thread = new Thread(parsePage);
+  threadList.add(thread);
+  parsePageList.add(parsePage);
+}
+```
+
+Each `ParsePage_WithoutThreadPool` parses its chunk and populates a local `HashMap<String, Integer>`. After all threads
+complete, their local maps are merged into a single global result:
+
+```
+for (ParsePage_WithoutThreadPool parser : parsePageList) {
+    for (Map.Entry<String, Integer> entry : parser.getLocalCounts().entrySet()) {
+        counts.merge(entry.getKey(), entry.getValue(), Integer::sum);
+    }
+}
+```
+
+This solution avoids shared state during computation, relying instead on **thread-local aggregation** followed by a *
+*single-threaded merge**.
+
+### Performance
+
+| Metric           | Value                      |
+|------------------|----------------------------|
+| Pages Processed  | 100,000                    |
+| Time Elapsed     | ~3,100 ms                  |
+| Top Word Example | 'the': 125,000 occurrences |
+
+> ✅ Improved over the sequential version
+>
+>
 > ⚠️ Required careful synchronization and manual thread management
-
+>
+> ⚠️ Harder to scale and maintain compared to ForkJoin or ExecutorService
+>
 ---
 
 ### ✅ Multithreaded Solution (With Thread Pools)
@@ -170,16 +227,69 @@ At the end, we print the total number of pages processed and the time elapsed.
 
 ### ✅ Fork/Join Framework Solution
 
-- Initially used a **global counter** with a `ReentrantLock`, which proved **slower** than the sequential version:
+- Initially I used a **global counter** with a `ReentrantLock`, which proved **slower** than the sequential version:
 
 ![Reentrant Lock](images/CounterLock.png)
 
 ![Fork Join Pool time](images/ForkJoinPoolTime.png)
 
 - Final version used per-task `HashMap`s and **merged results recursively**, which significantly improved performance:
+  This implementation uses Java's `ForkJoinPool`, which supports efficient parallelism using the **divide-and-conquer
+  paradigm**. The core idea is to recursively split a large task (in this case, parsing Wikipedia pages) into smaller
+  subtasks, execute them concurrently, and combine the results.
 
-> ✅ Final version was among the **fastest**  
-> ✅ Demonstrated excellent scalability for divide-and-conquer workloads
+The pages are first loaded using the `Pages_ForkJoinPool` class:
+
+```java
+Iterable<Page_ForkJoinPool> pages = parseXML(maxPages, fileName);
+List<Page_ForkJoinPool> pageList =
+        StreamSupport.stream(pages.spliterator(), false)
+                .collect(Collectors.toList());
+
+```
+
+A `ParsePage_ForkJoinPool` task is then created and submitted to the `ForkJoinPool`. This class extends
+`RecursiveTask<Map<String, Integer>>` and handles the core logic of splitting and processing the workload.
+
+The class divides the list of pages into halves until the number of pages is **below a defined threshold** (500 pages),
+at which point the page list is **processed locally**.
+
+```java
+ForkJoinPool pool = new ForkJoinPool();
+ParsePage_ForkJoinPool parsePage = new ParsePage_ForkJoinPool(pageList);
+Map<String, Integer> wordCounts = pool.invoke(parsePage);
+```
+
+Each leaf task iterates through its local list of `Page_ForkJoinPool` and tokenizes the text, storing word frequencies
+in a local `HashMap<String, Integer>`. Once results from subtasks are computed, they are **merged recursively** using
+the `merge()` method.
+
+```java
+private Map<String, Integer> mergeCounts(Map<String, Integer> a, Map<String, Integer> b) {
+    for (Map.Entry<String, Integer> entry : b.entrySet()) {
+        a.merge(entry.getKey(), entry.getValue(), Integer::sum);
+    }
+    return a;
+}
+```
+
+At the end, the top words are printed along with the total elapsed time for the computation.
+
+### Performance
+
+| Metric           | Value                      |
+|------------------|----------------------------|
+| Pages Processed  | 100,000                    |
+| Time Elapsed     | ~11,877 ms (G1GC 3rd Try)  |
+| Top Word Example | 'the': 125,000 occurrences |
+
+> ✅ Uses divide-and-conquer strategy to parallelize tasks efficiently
+>
+>
+> ✅ Leverages work-stealing for optimal thread utilization
+>
+> ⚠️ Requires recursive structure and may increase memory pressure with too many tasks
+>
 
 ---
 
@@ -555,7 +665,6 @@ These were my results with 18910 ms:
 |                                | Avg Stall Duration            | 125 ms                   |
 |                                | Max Stall Duration            | 285 ms                   |
 
-
 ![VM](images/ForkJoinPool_ZGC_1st.png)
 
 #### Interpretation:
@@ -572,7 +681,6 @@ To improve the speed I decided to try and increase the heap memory.
 ```
 
 These were my results with 18242 ms:
-
 
 | Category                       | Metric / Subcategory        | Value                   |
 |--------------------------------|-----------------------------|-------------------------|
