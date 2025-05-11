@@ -1,0 +1,194 @@
+[0.015s][info][gc,init] CardTable entry size: 512
+[0.015s][info][gc     ] Using Parallel
+[0.040s][info][gc,init] Version: 21.0.2+13-58 (release)
+[0.040s][info][gc,init] CPUs: 16 total, 16 available
+[0.040s][info][gc,init] Memory: 32555M
+[0.040s][info][gc,init] Large Page Support: Disabled
+[0.040s][info][gc,init] NUMA Support: Disabled
+[0.040s][info][gc,init] Compressed Oops: Enabled (Zero based)
+[0.040s][info][gc,init] Alignments: Space 512K, Generation 512K, Heap 2M
+[0.040s][info][gc,init] Heap Min Capacity: 7G
+[0.040s][info][gc,init] Heap Initial Capacity: 7G
+[0.040s][info][gc,init] Heap Max Capacity: 7G
+[0.040s][info][gc,init] Pre-touch: Disabled
+[0.040s][info][gc,init] Parallel Workers: 13
+[0.056s][info][gc,metaspace] CDS archive(s) mapped at: [0x000002eb0e000000-0x000002eb0ec90000-0x000002eb0ec90000), size 13172736, SharedBaseAddress: 0x000002eb0e000000, ArchiveRelocationMode: 1.
+[0.056s][info][gc,metaspace] Compressed class space mapped at: 0x000002eb0f000000-0x000002eb4f000000, reserved size: 1073741824
+[0.056s][info][gc,metaspace] Narrow klass base: 0x000002eb0e000000, Narrow klass shift: 0, Narrow klass range: 0x100000000
+[4.060s][info][gc,start    ] GC(0) Pause Young (Allocation Failure)
+[4.098s][info][gc,heap     ] GC(0) PSYoungGen: 1835008K(2140672K)->256411K(2140672K) Eden: 1835008K(1835008K)->0K(1835008K) From: 0K(305664K)->256411K(305664K)
+[4.098s][info][gc,heap     ] GC(0) ParOldGen: 0K(4893696K)->80K(4893696K)
+[4.098s][info][gc,metaspace] GC(0) Metaspace: 7707K(8064K)->7707K(8064K) NonClass: 6897K(7104K)->6897K(7104K) Class: 810K(960K)->810K(960K)
+[4.098s][info][gc          ] GC(0) Pause Young (Allocation Failure) 1792M->250M(6869M) 37.930ms
+[4.098s][info][gc,cpu      ] GC(0) User=0.28s Sys=0.27s Real=0.04s
+[4.901s][info][gc,start    ] GC(1) Pause Young (Allocation Failure)
+[4.989s][info][gc,heap     ] GC(1) PSYoungGen: 2091419K(2140672K)->305655K(2140672K) Eden: 1835008K(1835008K)->0K(1835008K) From: 256411K(305664K)->305655K(305664K)
+[4.989s][info][gc,heap     ] GC(1) ParOldGen: 80K(4893696K)->300345K(4893696K)
+[4.989s][info][gc,metaspace] GC(1) Metaspace: 7721K(8064K)->7721K(8064K) NonClass: 6911K(7104K)->6911K(7104K) Class: 810K(960K)->810K(960K)
+[4.989s][info][gc          ] GC(1) Pause Young (Allocation Failure) 2042M->591M(6869M) 87.962ms
+[4.989s][info][gc,cpu      ] GC(1) User=0.27s Sys=0.89s Real=0.09s
+[5.793s][info][gc,start    ] GC(2) Pause Young (Allocation Failure)
+[5.881s][info][gc,heap     ] GC(2) PSYoungGen: 2140663K(2140672K)->305661K(2140672K) Eden: 1835008K(1835008K)->0K(1835008K) From: 305655K(305664K)->305661K(305664K)
+[5.881s][info][gc,heap     ] GC(2) ParOldGen: 300345K(4893696K)->655194K(4893696K)
+[5.881s][info][gc,metaspace] GC(2) Metaspace: 7734K(8064K)->7734K(8064K) NonClass: 6923K(7104K)->6923K(7104K) Class: 810K(960K)->810K(960K)
+[5.881s][info][gc          ] GC(2) Pause Young (Allocation Failure) 2383M->938M(6869M) 88.453ms
+[5.881s][info][gc,cpu      ] GC(2) User=0.34s Sys=0.55s Real=0.09s
+[6.790s][info][gc,start    ] GC(3) Pause Young (Allocation Failure)
+[6.863s][info][gc,heap     ] GC(3) PSYoungGen: 2140669K(2140672K)->305659K(2140672K) Eden: 1835008K(1835008K)->0K(1835008K) From: 305661K(305664K)->305659K(305664K)
+[6.863s][info][gc,heap     ] GC(3) ParOldGen: 655194K(4893696K)->1015211K(4893696K)
+[6.863s][info][gc,metaspace] GC(3) Metaspace: 7739K(8064K)->7739K(8064K) NonClass: 6929K(7104K)->6929K(7104K) Class: 810K(960K)->810K(960K)
+[6.863s][info][gc          ] GC(3) Pause Young (Allocation Failure) 2730M->1289M(6869M) 72.609ms
+[6.863s][info][gc,cpu      ] GC(3) User=0.36s Sys=0.48s Real=0.07s
+[7.532s][info][gc,start    ] GC(4) Pause Young (Allocation Failure)
+[7.601s][info][gc,heap     ] GC(4) PSYoungGen: 2140667K(2140672K)->305661K(2140672K) Eden: 1835008K(1835008K)->0K(1835008K) From: 305659K(305664K)->305661K(305664K)
+[7.601s][info][gc,heap     ] GC(4) ParOldGen: 1015211K(4893696K)->1372335K(4893696K)
+[7.601s][info][gc,metaspace] GC(4) Metaspace: 7752K(8064K)->7752K(8064K) NonClass: 6942K(7104K)->6942K(7104K) Class: 810K(960K)->810K(960K)
+[7.601s][info][gc          ] GC(4) Pause Young (Allocation Failure) 3081M->1638M(6869M) 68.998ms
+[7.601s][info][gc,cpu      ] GC(4) User=0.47s Sys=0.38s Real=0.07s
+[8.256s][info][gc,start    ] GC(5) Pause Young (Allocation Failure)
+[8.322s][info][gc,heap     ] GC(5) PSYoungGen: 2140669K(2140672K)->305644K(1121792K) Eden: 1835008K(1835008K)->0K(816128K) From: 305661K(305664K)->305644K(305664K)
+[8.322s][info][gc,heap     ] GC(5) ParOldGen: 1372335K(4893696K)->1696619K(4893696K)
+[8.322s][info][gc,metaspace] GC(5) Metaspace: 7802K(8128K)->7802K(8128K) NonClass: 6985K(7168K)->6985K(7168K) Class: 817K(960K)->817K(960K)
+[8.322s][info][gc          ] GC(5) Pause Young (Allocation Failure) 3430M->1955M(5874M) 65.230ms
+[8.322s][info][gc,cpu      ] GC(5) User=0.42s Sys=0.34s Real=0.07s
+[8.591s][info][gc,start    ] GC(6) Pause Young (Allocation Failure)
+[8.638s][info][gc,heap     ] GC(6) PSYoungGen: 1121772K(1121792K)->370119K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 305644K(305664K)->370119K(815104K)
+[8.638s][info][gc,heap     ] GC(6) ParOldGen: 1696619K(4893696K)->1699731K(4893696K)
+[8.638s][info][gc,metaspace] GC(6) Metaspace: 8017K(8256K)->8017K(8256K) NonClass: 7165K(7296K)->7165K(7296K) Class: 851K(960K)->851K(960K)
+[8.638s][info][gc          ] GC(6) Pause Young (Allocation Failure) 2752M->2021M(6372M) 47.291ms
+[8.638s][info][gc,cpu      ] GC(6) User=0.31s Sys=0.27s Real=0.05s
+[8.782s][info][gc,start    ] GC(7) Pause Young (Allocation Failure)
+[8.834s][info][gc,heap     ] GC(7) PSYoungGen: 1186247K(1631232K)->410519K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 370119K(815104K)->410519K(815104K)
+[8.834s][info][gc,heap     ] GC(7) ParOldGen: 1699731K(4893696K)->1699731K(4893696K)
+[8.834s][info][gc,metaspace] GC(7) Metaspace: 8017K(8256K)->8017K(8256K) NonClass: 7166K(7296K)->7166K(7296K) Class: 851K(960K)->851K(960K)
+[8.834s][info][gc          ] GC(7) Pause Young (Allocation Failure) 2818M->2060M(6372M) 52.130ms
+[8.834s][info][gc,cpu      ] GC(7) User=0.53s Sys=0.02s Real=0.05s
+[8.981s][info][gc,start    ] GC(8) Pause Young (Allocation Failure)
+[9.049s][info][gc,heap     ] GC(8) PSYoungGen: 1226647K(1631232K)->150400K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 410519K(815104K)->150400K(815104K)
+[9.049s][info][gc,heap     ] GC(8) ParOldGen: 1699731K(4893696K)->2000349K(4893696K)
+[9.049s][info][gc,metaspace] GC(8) Metaspace: 8017K(8256K)->8017K(8256K) NonClass: 7166K(7296K)->7166K(7296K) Class: 851K(960K)->851K(960K)
+[9.049s][info][gc          ] GC(8) Pause Young (Allocation Failure) 2857M->2100M(6372M) 67.982ms
+[9.049s][info][gc,cpu      ] GC(8) User=0.78s Sys=0.14s Real=0.07s
+[9.203s][info][gc,start    ] GC(9) Pause Young (Allocation Failure)
+[9.248s][info][gc,heap     ] GC(9) PSYoungGen: 966528K(1631232K)->84519K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 150400K(815104K)->84519K(815104K)
+[9.248s][info][gc,heap     ] GC(9) ParOldGen: 2000349K(4893696K)->2100473K(4893696K)
+[9.248s][info][gc,metaspace] GC(9) Metaspace: 8734K(9024K)->8734K(9024K) NonClass: 7787K(7936K)->7787K(7936K) Class: 947K(1088K)->947K(1088K)
+[9.248s][info][gc          ] GC(9) Pause Young (Allocation Failure) 2897M->2133M(6372M) 45.421ms
+[9.248s][info][gc,cpu      ] GC(9) User=0.34s Sys=0.27s Real=0.05s
+[9.536s][info][gc,start    ] GC(10) Pause Young (Allocation Failure)
+[9.576s][info][gc,heap     ] GC(10) PSYoungGen: 900647K(1631232K)->30368K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 84519K(815104K)->30368K(815104K)
+[9.576s][info][gc,heap     ] GC(10) ParOldGen: 2100473K(4893696K)->2182513K(4893696K)
+[9.576s][info][gc,metaspace] GC(10) Metaspace: 10096K(10432K)->10096K(10432K) NonClass: 9055K(9216K)->9055K(9216K) Class: 1041K(1216K)->1041K(1216K)
+[9.576s][info][gc          ] GC(10) Pause Young (Allocation Failure) 2930M->2161M(6372M) 40.205ms
+[9.576s][info][gc,cpu      ] GC(10) User=0.36s Sys=0.06s Real=0.04s
+[10.049s][info][gc,start    ] GC(11) Pause Young (Allocation Failure)
+[10.080s][info][gc,heap     ] GC(11) PSYoungGen: 846496K(1631232K)->37152K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 30368K(815104K)->37152K(815104K)
+[10.081s][info][gc,heap     ] GC(11) ParOldGen: 2182513K(4893696K)->2212465K(4893696K)
+[10.081s][info][gc,metaspace] GC(11) Metaspace: 10144K(10432K)->10144K(10432K) NonClass: 9092K(9216K)->9092K(9216K) Class: 1052K(1216K)->1052K(1216K)
+[10.081s][info][gc          ] GC(11) Pause Young (Allocation Failure) 2958M->2196M(6372M) 31.210ms
+[10.081s][info][gc,cpu      ] GC(11) User=0.36s Sys=0.03s Real=0.03s
+[10.366s][info][gc,start    ] GC(12) Pause Young (Allocation Failure)
+[10.401s][info][gc,heap     ] GC(12) PSYoungGen: 853280K(1631232K)->49536K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 37152K(815104K)->49536K(815104K)
+[10.401s][info][gc,heap     ] GC(12) ParOldGen: 2212465K(4893696K)->2248681K(4893696K)
+[10.401s][info][gc,metaspace] GC(12) Metaspace: 10188K(10496K)->10188K(10496K) NonClass: 9125K(9280K)->9125K(9280K) Class: 1062K(1216K)->1062K(1216K)
+[10.401s][info][gc          ] GC(12) Pause Young (Allocation Failure) 2993M->2244M(6372M) 34.934ms
+[10.401s][info][gc,cpu      ] GC(12) User=0.39s Sys=0.02s Real=0.04s
+[10.620s][info][gc,start    ] GC(13) Pause Young (Allocation Failure)
+[10.656s][info][gc,heap     ] GC(13) PSYoungGen: 865664K(1631232K)->48320K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 49536K(815104K)->48320K(815104K)
+[10.656s][info][gc,heap     ] GC(13) ParOldGen: 2248681K(4893696K)->2296017K(4893696K)
+[10.656s][info][gc,metaspace] GC(13) Metaspace: 10188K(10496K)->10188K(10496K) NonClass: 9125K(9280K)->9125K(9280K) Class: 1062K(1216K)->1062K(1216K)
+[10.656s][info][gc          ] GC(13) Pause Young (Allocation Failure) 3041M->2289M(6372M) 35.543ms
+[10.656s][info][gc,cpu      ] GC(13) User=0.34s Sys=0.02s Real=0.04s
+[10.849s][info][gc,start    ] GC(14) Pause Young (Allocation Failure)
+[10.888s][info][gc,heap     ] GC(14) PSYoungGen: 864448K(1631232K)->65472K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 48320K(815104K)->65472K(815104K)
+[10.888s][info][gc,heap     ] GC(14) ParOldGen: 2296017K(4893696K)->2342570K(4893696K)
+[10.888s][info][gc,metaspace] GC(14) Metaspace: 10188K(10496K)->10188K(10496K) NonClass: 9125K(9280K)->9125K(9280K) Class: 1062K(1216K)->1062K(1216K)
+[10.888s][info][gc          ] GC(14) Pause Young (Allocation Failure) 3086M->2351M(6372M) 38.933ms
+[10.888s][info][gc,cpu      ] GC(14) User=0.36s Sys=0.03s Real=0.04s
+[11.098s][info][gc,start    ] GC(15) Pause Young (Allocation Failure)
+[11.144s][info][gc,heap     ] GC(15) PSYoungGen: 881600K(1631232K)->49024K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 65472K(815104K)->49024K(815104K)
+[11.144s][info][gc,heap     ] GC(15) ParOldGen: 2342570K(4893696K)->2407010K(4893696K)
+[11.144s][info][gc,metaspace] GC(15) Metaspace: 10188K(10496K)->10188K(10496K) NonClass: 9125K(9280K)->9125K(9280K) Class: 1062K(1216K)->1062K(1216K)
+[11.144s][info][gc          ] GC(15) Pause Young (Allocation Failure) 3148M->2398M(6372M) 46.535ms
+[11.144s][info][gc,cpu      ] GC(15) User=0.52s Sys=0.03s Real=0.05s
+[11.331s][info][gc,start    ] GC(16) Pause Young (Allocation Failure)
+[11.370s][info][gc,heap     ] GC(16) PSYoungGen: 865152K(1631232K)->51648K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 49024K(815104K)->51648K(815104K)
+[11.371s][info][gc,heap     ] GC(16) ParOldGen: 2407010K(4893696K)->2454058K(4893696K)
+[11.371s][info][gc,metaspace] GC(16) Metaspace: 10188K(10496K)->10188K(10496K) NonClass: 9125K(9280K)->9125K(9280K) Class: 1062K(1216K)->1062K(1216K)
+[11.371s][info][gc          ] GC(16) Pause Young (Allocation Failure) 3195M->2446M(6372M) 39.314ms
+[11.371s][info][gc,cpu      ] GC(16) User=0.38s Sys=0.03s Real=0.04s
+[11.545s][info][gc,start    ] GC(17) Pause Young (Allocation Failure)
+[11.580s][info][gc,heap     ] GC(17) PSYoungGen: 867776K(1631232K)->46144K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 51648K(815104K)->46144K(815104K)
+[11.580s][info][gc,heap     ] GC(17) ParOldGen: 2454058K(4893696K)->2504730K(4893696K)
+[11.580s][info][gc,metaspace] GC(17) Metaspace: 10223K(10560K)->10223K(10560K) NonClass: 9150K(9344K)->9150K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[11.580s][info][gc          ] GC(17) Pause Young (Allocation Failure) 3243M->2491M(6372M) 35.312ms
+[11.580s][info][gc,cpu      ] GC(17) User=0.53s Sys=0.05s Real=0.04s
+[11.742s][info][gc,start    ] GC(18) Pause Young (Allocation Failure)
+[11.780s][info][gc,heap     ] GC(18) PSYoungGen: 862272K(1631232K)->64576K(1631232K) Eden: 816128K(816128K)->0K(816128K) From: 46144K(815104K)->64576K(815104K)
+[11.780s][info][gc,heap     ] GC(18) ParOldGen: 2504730K(4893696K)->2549498K(4893696K)
+[11.780s][info][gc,metaspace] GC(18) Metaspace: 10223K(10560K)->10223K(10560K) NonClass: 9150K(9344K)->9150K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[11.780s][info][gc          ] GC(18) Pause Young (Allocation Failure) 3288M->2552M(6372M) 38.419ms
+[11.780s][info][gc,cpu      ] GC(18) User=0.39s Sys=0.00s Real=0.04s
+[11.929s][info][gc,start    ] GC(19) Pause Young (Allocation Failure)
+[11.974s][info][gc,heap     ] GC(19) PSYoungGen: 880704K(1631232K)->69312K(1676288K) Eden: 816128K(816128K)->0K(869376K) From: 64576K(815104K)->69312K(806912K)
+[11.974s][info][gc,heap     ] GC(19) ParOldGen: 2549498K(4893696K)->2613802K(4893696K)
+[11.974s][info][gc,metaspace] GC(19) Metaspace: 10223K(10560K)->10223K(10560K) NonClass: 9150K(9344K)->9150K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[11.974s][info][gc          ] GC(19) Pause Young (Allocation Failure) 3349M->2620M(6416M) 44.484ms
+[11.974s][info][gc,cpu      ] GC(19) User=0.59s Sys=0.02s Real=0.04s
+[12.131s][info][gc,start    ] GC(20) Pause Young (Allocation Failure)
+[12.171s][info][gc,heap     ] GC(20) PSYoungGen: 938688K(1676288K)->47008K(1639424K) Eden: 869376K(869376K)->0K(869376K) From: 69312K(806912K)->47008K(770048K)
+[12.171s][info][gc,heap     ] GC(20) ParOldGen: 2613802K(4893696K)->2681898K(4893696K)
+[12.171s][info][gc,metaspace] GC(20) Metaspace: 10223K(10560K)->10223K(10560K) NonClass: 9150K(9344K)->9150K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[12.171s][info][gc          ] GC(20) Pause Young (Allocation Failure) 3469M->2664M(6380M) 39.929ms
+[12.171s][info][gc,cpu      ] GC(20) User=0.39s Sys=0.02s Real=0.04s
+[12.338s][info][gc,start    ] GC(21) Pause Young (Allocation Failure)
+[12.386s][info][gc,heap     ] GC(21) PSYoungGen: 916384K(1639424K)->65568K(1746432K) Eden: 869376K(869376K)->0K(1009664K) From: 47008K(770048K)->65568K(736768K)
+[12.386s][info][gc,heap     ] GC(21) ParOldGen: 2681898K(4893696K)->2726306K(4893696K)
+[12.386s][info][gc,metaspace] GC(21) Metaspace: 10224K(10560K)->10224K(10560K) NonClass: 9151K(9344K)->9151K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[12.386s][info][gc          ] GC(21) Pause Young (Allocation Failure) 3513M->2726M(6484M) 47.719ms
+[12.386s][info][gc,cpu      ] GC(21) User=0.53s Sys=0.02s Real=0.05s
+[12.574s][info][gc,start    ] GC(22) Pause Young (Allocation Failure)
+[12.618s][info][gc,heap     ] GC(22) PSYoungGen: 1075232K(1746432K)->57856K(1709568K) Eden: 1009664K(1009664K)->0K(1009664K) From: 65568K(736768K)->57856K(699904K)
+[12.618s][info][gc,heap     ] GC(22) ParOldGen: 2726306K(4893696K)->2790650K(4893696K)
+[12.618s][info][gc,metaspace] GC(22) Metaspace: 10225K(10560K)->10225K(10560K) NonClass: 9152K(9344K)->9152K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[12.618s][info][gc          ] GC(22) Pause Young (Allocation Failure) 3712M->2781M(6448M) 43.255ms
+[12.618s][info][gc,cpu      ] GC(22) User=0.55s Sys=0.03s Real=0.04s
+[12.807s][info][gc,start    ] GC(23) Pause Young (Allocation Failure)
+[12.847s][info][gc,heap     ] GC(23) PSYoungGen: 1067520K(1709568K)->51968K(1814528K) Eden: 1009664K(1009664K)->0K(1149440K) From: 57856K(699904K)->51968K(665088K)
+[12.847s][info][gc,heap     ] GC(23) ParOldGen: 2790650K(4893696K)->2845650K(4893696K)
+[12.847s][info][gc,metaspace] GC(23) Metaspace: 10225K(10560K)->10225K(10560K) NonClass: 9152K(9344K)->9152K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[12.847s][info][gc          ] GC(23) Pause Young (Allocation Failure) 3767M->2829M(6551M) 39.903ms
+[12.847s][info][gc,cpu      ] GC(23) User=0.58s Sys=0.03s Real=0.04s
+[13.092s][info][gc,start    ] GC(24) Pause Young (Allocation Failure)
+[13.158s][info][gc,heap     ] GC(24) PSYoungGen: 1201408K(1814528K)->131552K(1781248K) Eden: 1149440K(1149440K)->0K(1149440K) From: 51968K(665088K)->131552K(631808K)
+[13.158s][info][gc,heap     ] GC(24) ParOldGen: 2845650K(4893696K)->2897611K(4893696K)
+[13.158s][info][gc,metaspace] GC(24) Metaspace: 10225K(10560K)->10225K(10560K) NonClass: 9152K(9344K)->9152K(9344K) Class: 1072K(1216K)->1072K(1216K)
+[13.158s][info][gc          ] GC(24) Pause Young (Allocation Failure) 3952M->2958M(6518M) 66.207ms
+[13.158s][info][gc,cpu      ] GC(24) User=0.81s Sys=0.08s Real=0.07s
+[13.418s][info][gc,start    ] GC(25) Pause Young (Allocation Failure)
+[13.499s][info][gc,heap     ] GC(25) PSYoungGen: 1280992K(1781248K)->111136K(1899520K) Eden: 1149440K(1149440K)->0K(1313792K) From: 131552K(631808K)->111136K(585728K)
+[13.499s][info][gc,heap     ] GC(25) ParOldGen: 2897611K(4893696K)->3026779K(4893696K)
+[13.500s][info][gc,metaspace] GC(25) Metaspace: 10263K(10624K)->10263K(10624K) NonClass: 9191K(9408K)->9191K(9408K) Class: 1072K(1216K)->1072K(1216K)
+[13.500s][info][gc          ] GC(25) Pause Young (Allocation Failure) 4080M->3064M(6634M) 81.024ms
+[13.500s][info][gc,cpu      ] GC(25) User=0.98s Sys=0.02s Real=0.08s
+[13.770s][info][gc,start    ] GC(26) Pause Young (Allocation Failure)
+[13.844s][info][gc,heap     ] GC(26) PSYoungGen: 1424928K(1899520K)->98656K(1860608K) Eden: 1313792K(1313792K)->0K(1313792K) From: 111136K(585728K)->98656K(546816K)
+[13.844s][info][gc,heap     ] GC(26) ParOldGen: 3026779K(4893696K)->3134699K(4893696K)
+[13.844s][info][gc,metaspace] GC(26) Metaspace: 10283K(10624K)->10283K(10624K) NonClass: 9211K(9408K)->9211K(9408K) Class: 1072K(1216K)->1072K(1216K)
+[13.844s][info][gc          ] GC(26) Pause Young (Allocation Failure) 4347M->3157M(6596M) 73.971ms
+[13.844s][info][gc,cpu      ] GC(26) User=0.75s Sys=0.03s Real=0.07s
+[14.231s][info][gc,start    ] GC(27) Pause Young (Allocation Failure)
+[14.337s][info][gc,heap     ] GC(27) PSYoungGen: 1412448K(1860608K)->220448K(1939456K) Eden: 1313792K(1313792K)->0K(1425920K) From: 98656K(546816K)->220448K(513536K)
+[14.337s][info][gc,heap     ] GC(27) ParOldGen: 3134699K(4893696K)->3227979K(4893696K)
+[14.337s][info][gc,metaspace] GC(27) Metaspace: 10290K(10624K)->10290K(10624K) NonClass: 9217K(9408K)->9217K(9408K) Class: 1072K(1216K)->1072K(1216K)
+[14.337s][info][gc          ] GC(27) Pause Young (Allocation Failure) 4440M->3367M(6673M) 106.500ms
+[14.337s][info][gc,cpu      ] GC(27) User=1.34s Sys=0.06s Real=0.11s
+[15.919s][info][gc,heap,exit] Heap
+[15.919s][info][gc,heap,exit]  PSYoungGen      total 1939456K, used 854639K [0x000000076ab00000, 0x0000000800000000, 0x0000000800000000)
+[15.919s][info][gc,heap,exit]   eden space 1425920K, 44% used [0x000000076ab00000,0x0000000791653ef0,0x00000007c1b80000)
+[15.919s][info][gc,heap,exit]   from space 513536K, 42% used [0x00000007e0a80000,0x00000007ee1c80d0,0x0000000800000000)
+[15.919s][info][gc,heap,exit]   to   space 506880K, 0% used [0x00000007c1b80000,0x00000007c1b80000,0x00000007e0a80000)
+[15.919s][info][gc,heap,exit]  ParOldGen       total 4893696K, used 3227979K [0x0000000640000000, 0x000000076ab00000, 0x000000076ab00000)
+[15.919s][info][gc,heap,exit]   object space 4893696K, 65% used [0x0000000640000000,0x0000000705052db8,0x000000076ab00000)
+[15.919s][info][gc,heap,exit]  Metaspace       used 10417K, committed 10752K, reserved 1114112K
+[15.919s][info][gc,heap,exit]   class space    used 1092K, committed 1280K, reserved 1048576K

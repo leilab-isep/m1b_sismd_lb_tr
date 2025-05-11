@@ -42,6 +42,7 @@ compare how different concurrency strategies affect performance, scalability, an
 - Resulted in the **longest execution time** among all implementations.
 
 ![img_2.png](images/sequential_elapsed_time.png "sequential_running")
+
 ### Performance
 
 | Metric           | Value                      |
@@ -49,6 +50,7 @@ compare how different concurrency strategies affect performance, scalability, an
 | Execution Time   | 28,150ms                   |
 | CPU Utilization  | \~2,100 ms                 |
 | Top Word Example | 'the': 125,000 occurrences |
+
 ---
 
 ### ✅ Multithreaded Solution (Without Thread Pools)
@@ -65,61 +67,89 @@ compare how different concurrency strategies affect performance, scalability, an
 ### ✅ Multithreaded Solution (With Thread Pools)
 
 This implementation uses Java's `ExecutorService` with a fixed-size thread pool.
-The number of threads is set to the number of available cores (`Runtime.getRuntime().availableProcessors()`) on the system.
+The number of threads is set to the number of available cores (`Runtime.getRuntime().availableProcessors()`) on the
+system.
 
-Pages are grouped into fixed-size chunks (500 pages) and processed concurrently using a fixed-size thread pool. 
+Pages are grouped into fixed-size chunks (500 pages) and processed concurrently using a fixed-size thread pool.
 All tasks are being stored in Futures, which are then used to retrieve the results at the end of the execution.
 
 ```java
-        int chunkValue = 500;        
-        List<Future<Map<String,Integer>>> futures = new ArrayList<>();
-        List<Page_WithThreadPool> pageChunck = new ArrayList<>(chunkValue);
+        int chunkValue = 500;
+List<Future<Map<String, Integer>>> futures = new ArrayList<>();
+List<Page_WithThreadPool> pageChunck = new ArrayList<>(chunkValue);
 ```
+
 The main part of this approach is in the `for` loop bellow:
 
-- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if it is.
+- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if
+  it is.
 - Then we add the page to the `pageChunck` list and next verify if it has reached the chunk size.
 - If it has, we create a new `ParsePage_WithThreadPool` object with the current chunk and submit it to the executor.
-- The class `ParsePage_WithThreadPool` implements `Callable<Map<String, Integer>>` and is responsible for processing a chunk of pages.
+- The class `ParsePage_WithThreadPool` implements `Callable<Map<String, Integer>>` and is responsible for processing a
+  chunk of pages.
 - Then, we clear the `pageChunck` list to prepare for the next chunk.
-- The number of pages might not be a multiple of the chunk size, so we need to handle the remaining pages after the loop.
-- So, if there are any remaining pages in the `pageChunck` list after the loop, we create a new `ParsePage_WithThreadPool` object and submit them to the executor.
+- The number of pages might not be a multiple of the chunk size, so we need to handle the remaining pages after the
+  loop.
+- So, if there are any remaining pages in the `pageChunck` list after the loop, we create a new
+  `ParsePage_WithThreadPool` object and submit them to the executor.
 - Finally, we shut down the executor.
 
 ```java
         int processedPages = 0;
-        for (Page_WithThreadPool page : pages) {
-            if (page == null)
-                break;
-            pageChunck.add(page);
-            processedPages++;
-            if (pageChunck.size() >= chunkValue) {
-                ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
-                Future<Map<String, Integer>> future = executor.submit(parsePage);
-                futures.add(future);
-                pageChunck.clear();
+        for(
+Page_WithThreadPool page :pages){
+        if(page ==null)
+        break;
+        pageChunck.
+
+add(page);
+
+processedPages++;
+        if(pageChunck.
+
+size() >=chunkValue){
+ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
+Future<Map<String, Integer>> future = executor.submit(parsePage);
+                futures.
+
+add(future);
+                pageChunck.
+
+clear();
             }
-        }
-        if (!pageChunck.isEmpty()) {
-            ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
-            Future<Map<String, Integer>> future = executor.submit(parsePage);
-            futures.add(future);
+                    }
+                    if(!pageChunck.
+
+isEmpty()){
+ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
+Future<Map<String, Integer>> future = executor.submit(parsePage);
+            futures.
+
+add(future);
         }
 
-        executor.shutdown();
+                executor.
+
+shutdown();
   ```
 
-After all tasks are submitted, we wait for their completion (`future.get()`)  and merge the results into the global `count` map.
+After all tasks are submitted, we wait for their completion (`future.get()`)  and merge the results into the global
+`count` map.
 The merging is done using the `merge` method that adds a new key if it doesn't exist or sums the values if it does.
 
 ```java
-        for (Future<Map<String,Integer>> future : futures) {
-            Map<String,Integer> partial = future.get();
-            partial.forEach((word, count) ->
-                counts.merge(word, count, Integer::sum)
+        for(Future<Map<String, Integer>> future :futures){
+Map<String, Integer> partial = future.get();
+            partial.
+
+forEach((word, count) ->
+        counts.
+
+merge(word, count, Integer::sum)
             );
-        }
+                    }
 ```
+
 At the end, we print the total number of pages processed and the time elapsed.
 
 ![img.png](images/withthreadpool_elapsed_time.png)
@@ -127,7 +157,7 @@ At the end, we print the total number of pages processed and the time elapsed.
 ### Performance
 
 | Metric           | Value                      |
-| ---------------- | -------------------------- |
+|------------------|----------------------------|
 | Pages Processed  | 10,000                     |
 | Time Elapsed     | \~2,100 ms                 |
 | Top Word Example | 'the': 125,000 occurrences |
@@ -155,78 +185,99 @@ At the end, we print the total number of pages processed and the time elapsed.
 
 ### ✅ CompletableFuture-Based Solution
 
-This implementation used Java's `CompletableFuture` for asynchronous execution and avoids explicit thread management and allows composable, non-blocking logic.
+This implementation used Java's `CompletableFuture` for asynchronous execution and avoids explicit thread management and
+allows composable, non-blocking logic.
 
 Pages are grouped into fixed-size chunks (500 pages) for each task.
 All tasks are being stored asynchronously in CompletableFutures `futures`:
+
 ```java
         int chunkValue = 500;
-        List<CompletableFuture<Map<String,Integer>>> futures = new ArrayList<>();
-        List<Page_CompletableFutures> pageChunck = new ArrayList<>(chunkValue);
+List<CompletableFuture<Map<String, Integer>>> futures = new ArrayList<>();
+List<Page_CompletableFutures> pageChunck = new ArrayList<>(chunkValue);
 ```
 
 The main part of this approach is in the `for` loop bellow:
-- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if it is.
+
+- For each page, we first check if the page is null (in case of end of an error or end of a file) and break the loop if
+  it is.
 - Then we add the page to the `pageChunck` list and next verify if it has reached the chunk size.
 - If it has, the list of pages is submitted to an asynchronous task using `CompletableFuture.supplyAsync(...)`.
-- Then, we clear the `pageChunck` list to prepare for the next chunk. 
+- Then, we clear the `pageChunck` list to prepare for the next chunk.
 - Then we ensure that the last incomplete chunk is also processed if any pages remain after the loop.
+
 ```java
-        for (Page_CompletableFutures page : pages) {
-            if (page == null)
-                break;
-            pageChunck.add(page);
-            processedPages++;
-            if (pageChunck.size() >= chunkValue) {
-                List<Page_CompletableFutures> toProcess = new ArrayList<>(pageChunck);
-                futures.add(
-                        CompletableFuture.supplyAsync(
-                            () -> processpageChunck(toProcess))
-                        );
-                        pageChunck.clear();
+        for(Page_CompletableFutures page :pages){
+        if(page ==null)
+        break;
+        pageChunck.
+
+add(page);
+
+processedPages++;
+        if(pageChunck.
+
+size() >=chunkValue){
+List<Page_CompletableFutures> toProcess = new ArrayList<>(pageChunck);
+                futures.
+
+add(
+        CompletableFuture.supplyAsync(
+                () ->
+
+processpageChunck(toProcess))
+        );
+        pageChunck.
+
+clear();
                 }
+                        }
+                        if(!pageChunck.
+
+isEmpty()){
+CompletableFuture<Map<String, Integer>> future = CompletableFuture.supplyAsync(() -> {
+    ParsePage_CompletableFutures parsePage = new ParsePage_CompletableFutures(new ArrayList<>(pageChunck));
+    return parsePage.call();
+});
+                futures.
+
+add(future);
             }
-            if (!pageChunck.isEmpty()) {
-                CompletableFuture<Map<String, Integer>> future = CompletableFuture.supplyAsync(() -> {
-                    ParsePage_CompletableFutures parsePage = new ParsePage_CompletableFutures(new ArrayList<>(pageChunck));
-                    return parsePage.call();
-                });
-                futures.add(future);
-            }
-        }
+                    }
 ```
 
-After all tasks are submitted, we wait for their completion using `CompletableFuture.allOf(...)` and combine them into one future.
+After all tasks are submitted, we wait for their completion using `CompletableFuture.allOf(...)` and combine them into
+one future.
 We merge the results into the global `count`:
 
-- `thenApply` executes once all futures are complete. 
+- `thenApply` executes once all futures are complete.
 - `join()` retrieves results without needing to handle checked exceptions.
 - `merge()` safely adds partial results into the `counts` map, summing up values.
-- Finally, `get()` blocks until the global result is available, and we use `awaitTermination()` to wait for the pool termination.
+- Finally, `get()` blocks until the global result is available, and we use `awaitTermination()` to wait for the pool
+  termination.
 
 ```java
         CompletableFuture<Void> allDone = CompletableFuture
-            .allOf(futures.toArray(new CompletableFuture[0]));
-        CompletableFuture<Map<String,Integer>> globalFuture = allDone.thenApply(v -> {
-            for (CompletableFuture<Map<String,Integer>> cf : futures) {
-                Map<String,Integer> partial = cf.join();
-                partial.forEach((word, cnt) ->
-                        counts.merge(word, cnt, Integer::sum)
-                );
-            }
-            return counts;
-        });
+        .allOf(futures.toArray(new CompletableFuture[0]));
+CompletableFuture<Map<String, Integer>> globalFuture = allDone.thenApply(v -> {
+    for (CompletableFuture<Map<String, Integer>> cf : futures) {
+        Map<String, Integer> partial = cf.join();
+        partial.forEach((word, cnt) ->
+                counts.merge(word, cnt, Integer::sum)
+        );
+    }
+    return counts;
+});
 
 ```
 
 At the end, we print the total number of pages processed and the time elapsed:
 ![img_1.png](images/completablefutures_elapsed_time.png)
 
-
 ### Performance
 
 | Metric           | Value                      |
-| ---------------- | -------------------------- |
+|------------------|----------------------------|
 | Pages Processed  | 10,000                     |
 | Time Elapsed     | \~2,100 ms                 |
 | Top Word Example | 'the': 125,000 occurrences |
@@ -373,45 +424,213 @@ These were my results with 11877ms:
 
 #### Parallel Garbage Collector (ParallelGC)
 
-I used this run configuration:
+#### First Try
+
+In my first try, I used this run configuration:
 
 ```
--Xms7g -Xmx7g -XX:+UseParallelGC
+-Xms7g -Xmx7g -XX:+UseParallelGC -Xlog:gc*:gc.log  
 ```
 
-With that said, it took `11921 ms` to finish.
+These were my results with 11904 ms:
 
-![VisualVM](images/ForkJoinPool_ParallelGC.png)
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.04 GB                |
+|                                | Young Generation Peak       | 2.04 GB                |
+|                                | Old Generation Allocated    | 4.67 GB                |
+|                                | Old Generation Peak         | 2.99 GB                |
+|                                | Meta Space Allocated        | 10.5 MB                |
+|                                | Meta Space Peak             | 10.17 MB               |
+|                                | Total Allocated (Heap+Meta) | 6.72 GB                |
+|                                | Total Peak (Heap+Meta)      | 4.35 GB                |
+| **Key Performance Indicators** | Throughput                  | 90.254%                |
+|                                | CPU Time                    | 18s 440ms              |
+|                                | User Time                   | 14s 250ms              |
+|                                | System Time                 | 4s 190ms               |
+|                                | Avg GC Pause Time           | 55.4 ms                |
+|                                | Max GC Pause Time           | 110 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 27 (96.43%)            |
+|                                | 100 - 200 ms Pauses         | 1 (3.57%)              |
+| **GC Event Causes**            | Allocation Failure          | 28 events (avg 55.4ms) |
+| **GC Stats**                   | Total GC Count              | 28                     |
+|                                | Total GC Time               | 1s 550ms               |
+|                                | Full GCs                    | 0                      |
+| **Object Allocation Stats**    | Total Created Bytes         | 29.68 GB               |
+|                                | Total Promoted Bytes        | 3.08 GB                |
+|                                | Avg Creation Rate           | 1.87 GB/sec            |
+|                                | Avg Promotion Rate          | 198.22 MB/sec          |
+
+![VM](images/ForkJoinPool_ParallelGC_1st.png)
+
+#### Interpretation:
+
+- Throughput seems low at 90.254%.
+
+#### Second Try
+
+In my second try, to increase Throughput I will increase heap memory to 10Gbs.
+
+```
+-Xms10g -Xmx10g -XX:+UseParallelGC -Xlog:gc*:gc.log  
+```
+
+These were my results with 13177 ms:
+
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.92 GB                |
+|                                | Young Generation Peak       | 2.92 GB                |
+|                                | Old Generation Allocated    | 6.67 GB                |
+|                                | Old Generation Peak         | 2.94 GB                |
+|                                | Meta Space Allocated        | 10.56 MB               |
+|                                | Meta Space Peak             | 10.21 MB               |
+|                                | Total Allocated (Heap+Meta) | 9.59 GB                |
+|                                | Total Peak (Heap+Meta)      | 4.52 GB                |
+| **Key Performance Indicators** | Throughput                  | 90.806%                |
+|                                | CPU Time                    | 19s 380ms              |
+|                                | User Time                   | 14s 580ms              |
+|                                | System Time                 | 4s 800ms               |
+|                                | Avg GC Pause Time           | 83.7 ms                |
+|                                | Max GC Pause Time           | 120 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 13 (68.42%)            |
+|                                | 100 - 200 ms Pauses         | 6 (31.58%)             |
+| **GC Event Causes**            | Allocation Failure          | 19 events (avg 83.7ms) |
+| **GC Stats**                   | Total GC Count              | 19                     |
+|                                | Total GC Time               | 1s 590ms               |
+|                                | Full GCs                    | 0                      |
+| **Object Allocation Stats**    | Total Created Bytes         | 29.89 GB               |
+|                                | Total Promoted Bytes        | 3.06 GB                |
+|                                | Avg Creation Rate           | 1.73 GB/sec            |
+|                                | Avg Promotion Rate          | 181.05 MB/sec          |
+
+![VM](images/ForkJoinPool_ParallelGC_2nd.png)
+
+#### Interpretation:
+
+- Throughput stayed pretty much the same. Meaning no matter how much memory I give it, it is going to remain the same.
+
+---
 
 #### Z Garbage Collector (ZGC)
 
-I used this run configuration:
+#### First Try
+
+In my first try, I used this run configuration:
 
 ```
--Xms7g -Xmx7g -XX:+UseZGC
+-Xms7g -Xmx7g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-With that said, it took `18406 ms` to finish.
+These were my results with 18910 ms:
 
-![VisualVM](images/ForkJoinPool_ZGC.png)
+| Category                       | Metric / Subcategory          | Value                    |
+|--------------------------------|-------------------------------|--------------------------|
+| **Memory Overview**            | Heap Allocated                | 7 GB                     |
+|                                | Heap Peak                     | 6.3 GB                   |
+|                                | Metaspace Allocated           | 8 MB                     |
+|                                | Metaspace Peak                | 7 MB                     |
+|                                | Total Allocated (Heap+Meta)   | 7.01 GB                  |
+|                                | Total Peak (Heap+Meta)        | 6.31 GB                  |
+| **Key Performance Indicators** | Throughput                    | 99.997%                  |
+|                                | CPU Time                      | n/a                      |
+|                                | Avg GC Pause Time             | 0.0186 ms                |
+|                                | Max GC Pause Time             | 0.0530 ms                |
+| **GC Pause Distribution**      | 0 - 0.1 ms Pauses             | 45 (100.0%)              |
+| **GC Event Causes**            | Allocation Rate               | 7 events (max 0.0950 ms) |
+|                                | Allocation Stall              | 5 events (max 0.0730 ms) |
+|                                | Warmup                        | 3 events (max 0.0450 ms) |
+| **ZGC Concurrent Phase Times** | Concurrent Mark               | 9.72 s (avg 324 ms)      |
+|                                | Concurrent Relocate           | 1.60 s (avg 107 ms)      |
+|                                | Concurrent Select Relocation  | 425 ms (avg 28.4 ms)     |
+|                                | Concurrent Process Non-Strong | 58.7 ms (avg 3.92 ms)    |
+| **ZGC Pause Breakdown**        | Total Pause Time              | 0.835 ms                 |
+|                                | Pause Count                   | 45                       |
+|                                | Pause Min/Max Time            | 0.004 / 0.053 ms         |
+| **Object Allocation Stats**    | Total Created Bytes           | 13.16 GB                 |
+|                                | Total Promoted Bytes          | n/a                      |
+|                                | Avg Creation Rate             | 542.9 MB/sec             |
+|                                | Avg Promotion Rate            | n/a                      |
+| **Allocation Stall Metrics**   | Total Time                    | 14.56 s                  |
+|                                | Avg Stall Duration            | 125 ms                   |
+|                                | Max Stall Duration            | 285 ms                   |
 
-#### Serial Garbage Collector (SGC)
 
-I used this run configuration:
+![VM](images/ForkJoinPool_ZGC_1st.png)
+
+#### Interpretation:
+
+- In the VisualVM the Heap exceeded the max memory.
+- Compared with the other, it ran way slower
+
+#### Second Try
+
+To improve the speed I decided to try and increase the heap memory.
 
 ```
--Xms7g -Xmx7g -XX:+UseSerialGC
+-Xms15g -Xmx15g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-With that said, it took `17410 ms` to finish.
-
-![VisualVM](images/ForkJoinPool_SGC.png)
+These were my results with 18242 ms:
 
 
+| Category                       | Metric / Subcategory        | Value                   |
+|--------------------------------|-----------------------------|-------------------------|
+| **Memory Overview**            | Heap Allocated              | 15 GB                   |
+|                                | Heap Peak                   | 12.23 GB                |
+|                                | Metaspace Allocated         | 10 MB                   |
+|                                | Metaspace Peak              | 10 MB                   |
+|                                | Total Allocated (Heap+Meta) | 15.01 GB                |
+|                                | Total Peak (Heap+Meta)      | 12.24 GB                |
+| **Key Performance Indicators** | Throughput                  | 99.998%                 |
+|                                | Total Execution Time        | 22.645 seconds          |
+|                                | Avg GC Pause Time           | 0.0190 ms               |
+|                                | Max GC Pause Time           | 0.0750 ms               |
+| **GC Pause Distribution**      | 0 - 0.1 ms Pauses           | 21 (100.0%)             |
+| **ZGC Phases**                 | Concurrent Mark Total       | 6.917 s (avg 494 ms)    |
+|                                | Concurrent Relocate Total   | 1.626 s (avg 232 ms)    |
+|                                | Pause Time (Total)          | 0.400 ms                |
+|                                | Pause Time (Min / Max)      | 0.004 / 0.075 ms        |
+| **Object Allocation Stats**    | Total Created Bytes         | 20.47 GB                |
+|                                | Avg Allocation Rate         | 925.86 MB/sec           |
+| **Allocation Stall Metrics**   | Total Time                  | 39.539 s                |
+|                                | Avg Stall Duration          | 2.081 s                 |
+|                                | Max Stall Duration          | 2.489 s                 |
+| **GC Causes**                  | Allocation Rate             | 3 events (max 0.104 ms) |
+|                                | Allocation Stall            | 1 event (0.115 ms)      |
+|                                | Warmup                      | 3 events (max 0.041 ms) |
 
+![VM](images/ForkJoinPool_ZGC_2nd.png)
 
+#### Interpretation:
 
----
+- In the VisualVM the Heap did not exceed the limit but still ran the same speed. Seems no matter how much memory I
+  does not run faster.
+
+## ♻️ Garbage Collection Tuning – Conclusion
+
+Across the various GC implementations tested (G1GC, ParallelGC, ZGC), each showed distinct trade-offs between
+throughput, pause times, and execution speed:
+
+- **G1GC** achieved **balanced performance** with configurable pause limits and consistent throughput (~90.8%).
+  Increasing heap memory reduced pause duration slightly, but throughput gains plateaued early.
+- **ParallelGC** showed **similar performance to G1GC** but with **higher pause durations** and slightly higher memory
+  usage.
+- **ZGC** delivered **ultra-low pause times** (below 0.1 ms), nearly eliminating latency, but **overall execution time
+  was worse**, likely due to background relocation phases and lower object allocation throughput.
+
+### 🔁 GC Strategy Comparison Table
+
+| GC Type    | Exec Time (ms) | Throughput | Avg Pause (ms) | Max Pause (ms) | Heap Used | Notes                               |
+|------------|----------------|------------|----------------|----------------|-----------|-------------------------------------|
+| G1GC       | 11,877         | 90.565%    | 38.7           | 130            | 4.48 GB   | Best performance overall            |
+| ParallelGC | 11,904         | 90.254%    | 55.4           | 120            | 4.35 GB   | Slightly more pause than G1GC       |
+| ZGC        | 18,242         | 99.998%    | 0.019          | 0.075          | 12.24 GB  | Lowest latency, but slowest overall |
+
+### 🧠 Final Insight
+
+- Since what is needed for this project is fast execution time, and pause time is not necessary, Garbage First Garbage
+  Collection is the one that is going to be used.
 
 ## 🧵 Concurrency and Synchronization
 
@@ -428,68 +647,78 @@ With that said, it took `17410 ms` to finish.
 ## 📊 Performance Analysis
 
 ### Experimental Setup
+
 - **Hardware**:
-  - **CPU model**: Apple M3 SoC
-  - **Core count**: 8 cores (4 Performance + 4 Efficiency)
-  - **RAM**: 16 GB unified LPDDR5
+    - **CPU model**: Apple M3 SoC
+    - **Core count**: 8 cores (4 Performance + 4 Efficiency)
+    - **RAM**: 16 GB unified LPDDR5
 
 - **Software**:
-  - **JDK version**: OpenJDK 21 
-  - **OS**: macOS Sequoia (15.4.1)
-  - **IDE**: IntelliJ IDEA (2024.2.3)
+    - **JDK version**: OpenJDK 21
+    - **OS**: macOS Sequoia (15.4.1)
+    - **IDE**: IntelliJ IDEA (2024.2.3)
 
 - **Tools**: VisualVM + VisualGC, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
 
 ### Metrics Collected
-| Metric                | Tool(s)                      |
-|-----------------------|------------------------------|
-| Execution Time        | `System.currentTimeMillis()` |
-| CPU Utilization (%)   | VisualGC, `top`, JFR         |
-| Memory Usage (heap)   | VisualGC, JFR                |
-| GC Pauses             | VisualGC, JFR                |
-| Throughput (pages/s)  | Custom timer + Prometheus    |
-| Lock Contention       | Async Profiler               |
+
+| Metric               | Tool(s)                      |
+|----------------------|------------------------------|
+| Execution Time       | `System.currentTimeMillis()` |
+| CPU Utilization (%)  | VisualGC, `top`, JFR         |
+| Memory Usage (heap)  | VisualGC, JFR                |
+| GC Pauses            | VisualGC, JFR                |
+| Throughput (pages/s) | Custom timer + Prometheus    |
+| Lock Contention      | Async Profiler               |
 
 ### Scalability Experiments
+
 - **Variable**: Dataset size (e.g., 10k, 50k, 100k pages)
 - **Variable**: Number of threads/cores (e.g., 1, 2, 4, 8)
 - **Procedure**:
-  1. For each combination, run 3 trials.
-  2. Record the above metrics.
-  3. Average the results.
+    1. For each combination, run 3 trials.
+    2. Record the above metrics.
+    3. Average the results.
 
 ### Results
 
 #### Execution Time Comparison
-*(Insert auto-generated table & line chart)*  
 
-| Impl.                    | 10k pages (ms) | 50k pages (ms) | 100k pages (ms) |
-|--------------------------|----------------|----------------|-----------------|
-| Sequential               | 5 500          | 28 000         | 55 000          |
-| Manual Threads           | 3 100          | 16 000         | 32 000          |
-| Thread Pool              | 2 100          | 11 000         | 22 000          |
-| Fork/Join                | 1 900          | 10 000         | 20 000          |
-| CompletableFuture        | 2 200          | 11 500         | 23 000          |
+*(Insert auto-generated table & line chart)*
+
+| Impl.             | 10k pages (ms) | 50k pages (ms) | 100k pages (ms) |
+|-------------------|----------------|----------------|-----------------|
+| Sequential        | 5 500          | 28 000         | 55 000          |
+| Manual Threads    | 3 100          | 16 000         | 32 000          |
+| Thread Pool       | 2 100          | 11 000         | 22 000          |
+| Fork/Join         | 1 900          | 10 000         | 20 000          |
+| CompletableFuture | 2 200          | 11 500         | 23 000          |
 
 #### CPU & Memory Utilization
+
 *(Insert Prometheus/Grafana graphs or VisualGC snapshots)*
 
 #### Scalability Analysis
+
 *(Insert heatmap or 3D plot of time vs. pages vs. threads)*
 
 ### Comparative Analysis
 
 #### Efficiency Gains
+
 - **Over Sequential**: e.g. Thread Pool is ~26× faster at 100k pages.
 
 #### Scalability
+
 - **Linear Scaling**: Fork/Join scales best up to 8 cores; CompletableFuture shows slight overhead beyond 6 cores.
 
 #### Overhead Analysis
+
 - **Thread Creation**: Manual Threads incurred ~500 ms overhead per 100 tasks.
 - **Task Management**: CompletableFuture abstracts thread pool tuning but adds ~100 ms overhead versus raw ForkJoin.
 
 #### Bottlenecks
+
 - **XML Parsing**: Always sequential—becomes dominant at small thread counts.
 - **GC Pauses**: At high throughput, pauses grow with larger heap—tune GC or switch to G1/ZGC.
 
