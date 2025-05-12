@@ -3,7 +3,7 @@
 ## 🧾 Cover
 
 **Title**: Optimizing Large-Scale Data Processing on Multicore Systems  
-**Course**: Sistemas Multinúcleo e Distribuídos  (SISMD)
+**Course**: Sistemas Multinúcleo e Distribuídos (SISMD)
 **Program**: Mestrado em Engenharia Informática - Engenharia de Software  
 **Institution**: Instituto Superior de Engenharia do Porto
 
@@ -27,8 +27,7 @@ compare how different concurrency strategies affect performance, scalability, an
 - Implement multiple approaches for concurrent word counting.
 - Compare execution time, scalability, and CPU/memory usage across all implementations.
 - Tune garbage collection for improved performance.
-- Generate automated metrics, tables, and charts to support the analysis.
-- Identify bottlenecks and inefficiencies through observation and profiling tools.
+- Generate metrics, tables, and charts to support the analysis.
 
 ---
 
@@ -40,16 +39,6 @@ compare how different concurrency strategies affect performance, scalability, an
 - Serves as a **baseline** for all performance comparisons.
 - Easy to implement but unable to leverage multicore hardware.
 - Resulted in the **longest execution time** among all implementations.
-
-![img_2.png](images/sequential_elapsed_time.png "sequential_running")
-
-### Performance
-
-| Metric           | Value                      |
-|------------------|----------------------------|
-| Execution Time   | 28,150ms                   |
-| CPU Utilization  | \~2,100 ms                 |
-| Top Word Example | 'the': 125,000 occurrences |
 
 ---
 
@@ -79,30 +68,34 @@ For each chunk:
 List<Thread> threadList = new ArrayList<>();
 List<ParsePage_WithoutThreadPool> parsePageList = new ArrayList<>();
 
-for(
-int i = 0;
-i<numberOfThreads;i++){
-int start = i * chunkSize;
-int end = Math.min(pageLength, start + chunkSize);
-List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
-ParsePage_WithoutThreadPool parsePage = new ParsePage_WithoutThreadPool(pageSubList);
-Thread thread = new Thread(parsePage);
-  threadList.
+for (int i = 0; i < numberOfThreads; i++) {
+    int start = i * chunkSize;
+    int end = Math.min(pageLength, start + chunkSize);
+    List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
 
-add(thread);
-  parsePageList.
+    ParsePage_WithoutThreadPool parsePage =
+        new ParsePage_WithoutThreadPool(pageSubList);
+    Thread thread = new Thread(parsePage);
 
-add(parsePage);
+    threadList.add(thread);
+    parsePageList.add(parsePage);
+}
+for (Thread t : threadList) {
+    t.start();
 }
 ```
 
 Each `ParsePage_WithoutThreadPool` parses its chunk and populates a local `HashMap<String, Integer>`. After all threads
 complete, their local maps are merged into a single global result:
 
-```
+```java
 for (ParsePage_WithoutThreadPool parser : parsePageList) {
     for (Map.Entry<String, Integer> entry : parser.getLocalCounts().entrySet()) {
-        counts.merge(entry.getKey(), entry.getValue(), Integer::sum);
+        counts.merge(
+            entry.getKey(),
+            entry.getValue(),
+            Integer::sum
+        );
     }
 }
 ```
@@ -110,21 +103,6 @@ for (ParsePage_WithoutThreadPool parser : parsePageList) {
 This solution avoids shared state during computation, relying instead on **thread-local aggregation** followed by a *
 *single-threaded merge**.
 
-### Performance
-
-| Metric           | Value                      |
-|------------------|----------------------------|
-| Pages Processed  | 100,000                    |
-| Time Elapsed     | ~3,100 ms                  |
-| Top Word Example | 'the': 125,000 occurrences |
-
-> ✅ Improved over the sequential version
->
->
-> ⚠️ Required careful synchronization and manual thread management
->
-> ⚠️ Harder to scale and maintain compared to ForkJoin or ExecutorService
->
 ---
 
 ### ✅ Multithreaded Solution (With Thread Pools)
@@ -137,7 +115,7 @@ Pages are grouped into fixed-size chunks (500 pages) and processed concurrently 
 All tasks are being stored in Futures, which are then used to retrieve the results at the end of the execution.
 
 ```java
-        int chunkValue = 500;
+int chunkValue = 500;
 List<Future<Map<String, Integer>>> futures = new ArrayList<>();
 List<Page_WithThreadPool> pageChunck = new ArrayList<>(chunkValue);
 ```
@@ -158,42 +136,34 @@ The main part of this approach is in the `for` loop bellow:
 - Finally, we shut down the executor.
 
 ```java
-        int processedPages = 0;
-        for(
-Page_WithThreadPool page :pages){
-        if(page ==null)
+int processedPages = 0;
+List<Page_WithThreadPool> pageChunk = new ArrayList<>();
+
+for (Page_WithThreadPool page : pages) {
+    if (page == null) {
         break;
-        pageChunck.
+    }
 
-add(page);
+    pageChunk.add(page);
+    processedPages++;
 
-processedPages++;
-        if(pageChunck.
+    if (pageChunk.size() >= chunkValue) {
+        ParsePage_WithThreadPool parsePage =
+            new ParsePage_WithThreadPool(new ArrayList<>(pageChunk));
+        Future<Map<String, Integer>> future = executor.submit(parsePage);
+        futures.add(future);
+        pageChunk.clear();
+    }
+}
 
-size() >=chunkValue){
-ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
-Future<Map<String, Integer>> future = executor.submit(parsePage);
-                futures.
+if (!pageChunk.isEmpty()) {
+    ParsePage_WithThreadPool parsePage =
+        new ParsePage_WithThreadPool(new ArrayList<>(pageChunk));
+    Future<Map<String, Integer>> future = executor.submit(parsePage);
+    futures.add(future);
+}
 
-add(future);
-                pageChunck.
-
-clear();
-            }
-                    }
-                    if(!pageChunck.
-
-isEmpty()){
-ParsePage_WithThreadPool parsePage = new ParsePage_WithThreadPool(new ArrayList<>(pageChunck));
-Future<Map<String, Integer>> future = executor.submit(parsePage);
-            futures.
-
-add(future);
-        }
-
-                executor.
-
-shutdown();
+executor.shutdown();
   ```
 
 After all tasks are submitted, we wait for their completion (`future.get()`)  and merge the results into the global
@@ -201,33 +171,16 @@ After all tasks are submitted, we wait for their completion (`future.get()`)  an
 The merging is done using the `merge` method that adds a new key if it doesn't exist or sums the values if it does.
 
 ```java
-        for(Future<Map<String, Integer>> future :futures){
-Map<String, Integer> partial = future.get();
-            partial.
-
-forEach((word, count) ->
-        counts.
-
-merge(word, count, Integer::sum)
-            );
-                    }
+for (Future<Map<String, Integer>> future : futures) {
+    Map<String, Integer> partial = future.get();
+    partial.forEach((word, count) ->
+        counts.merge(word, count, Integer::sum)
+    );
+}
 ```
 
 At the end, we print the total number of pages processed and the time elapsed.
 
-![img.png](images/withthreadpool_elapsed_time.png)
-
-### Performance
-
-| Metric           | Value                      |
-|------------------|----------------------------|
-| Pages Processed  | 10,000                     |
-| Time Elapsed     | \~2,100 ms                 |
-| Top Word Example | 'the': 125,000 occurrences |
-
-> ✅ Performed better than manual threading  
-> ✅ Scales efficiently with the number of available cores  
-> ⚠️ Requires tuning pool size for optimal performance
 
 ---
 
@@ -281,21 +234,6 @@ private Map<String, Integer> mergeCounts(Map<String, Integer> a, Map<String, Int
 
 At the end, the top words are printed along with the total elapsed time for the computation.
 
-### Performance
-
-| Metric           | Value                      |
-|------------------|----------------------------|
-| Pages Processed  | 100,000                    |
-| Time Elapsed     | ~11,877 ms (G1GC 3rd Try)  |
-| Top Word Example | 'the': 125,000 occurrences |
-
-> ✅ Uses divide-and-conquer strategy to parallelize tasks efficiently
->
->
-> ✅ Leverages work-stealing for optimal thread utilization
->
-> ⚠️ Requires recursive structure and may increase memory pressure with too many tasks
->
 
 ---
 
@@ -308,7 +246,7 @@ Pages are grouped into fixed-size chunks (500 pages) for each task.
 All tasks are being stored asynchronously in CompletableFutures `futures`:
 
 ```java
-        int chunkValue = 500;
+int chunkValue = 500;
 List<CompletableFuture<Map<String, Integer>>> futures = new ArrayList<>();
 List<Page_CompletableFutures> pageChunck = new ArrayList<>(chunkValue);
 ```
@@ -323,43 +261,31 @@ The main part of this approach is in the `for` loop bellow:
 - Then we ensure that the last incomplete chunk is also processed if any pages remain after the loop.
 
 ```java
-        for(Page_CompletableFutures page :pages){
-        if(page ==null)
+for (Page_CompletableFutures page : pages) {
+    if (page == null) {
         break;
-        pageChunck.
-
-add(page);
-
-processedPages++;
-        if(pageChunck.
-
-size() >=chunkValue){
-List<Page_CompletableFutures> toProcess = new ArrayList<>(pageChunck);
-                futures.
-
-add(
-        CompletableFuture.supplyAsync(
-                () ->
-
-processpageChunck(toProcess))
+    }
+    pageChunck.add(page);
+    processedPages++;
+    if (pageChunck.size() >= chunkValue) {
+        List<Page_CompletableFutures> toProcess = new ArrayList<>(pageChunck);
+        futures.add(
+            CompletableFuture.supplyAsync(() ->
+                processpageChunck(toProcess)
+            )
         );
-        pageChunck.
+        pageChunck.clear();
+    }
+}
 
-clear();
-                }
-                        }
-                        if(!pageChunck.
-
-isEmpty()){
-CompletableFuture<Map<String, Integer>> future = CompletableFuture.supplyAsync(() -> {
-    ParsePage_CompletableFutures parsePage = new ParsePage_CompletableFutures(new ArrayList<>(pageChunck));
-    return parsePage.call();
-});
-                futures.
-
-add(future);
-            }
-                    }
+if (!pageChunck.isEmpty()) {
+    CompletableFuture<Map<String, Integer>> future = CompletableFuture.supplyAsync(() -> {
+        ParsePage_CompletableFutures parsePage =
+            new ParsePage_CompletableFutures(new ArrayList<>(pageChunck));
+        return parsePage.call();
+    });
+    futures.add(future);
+}
 ```
 
 After all tasks are submitted, we wait for their completion using `CompletableFuture.allOf(...)` and combine them into
@@ -373,8 +299,9 @@ We merge the results into the global `count`:
   termination.
 
 ```java
-        CompletableFuture<Void> allDone = CompletableFuture
+CompletableFuture<Void> allDone = CompletableFuture
         .allOf(futures.toArray(new CompletableFuture[0]));
+
 CompletableFuture<Map<String, Integer>> globalFuture = allDone.thenApply(v -> {
     for (CompletableFuture<Map<String, Integer>> cf : futures) {
         Map<String, Integer> partial = cf.join();
@@ -387,19 +314,7 @@ CompletableFuture<Map<String, Integer>> globalFuture = allDone.thenApply(v -> {
 
 ```
 
-At the end, we print the total number of pages processed and the time elapsed:
-![img_1.png](images/completablefutures_elapsed_time.png)
-
-### Performance
-
-| Metric           | Value                      |
-|------------------|----------------------------|
-| Pages Processed  | 10,000                     |
-| Time Elapsed     | \~2,100 ms                 |
-| Top Word Example | 'the': 125,000 occurrences |
-
-> ✅ Code was more **declarative and readable**  
-> ⚠️ Requires careful error handling and result combination
+At the end, we print the total number of pages processed and the time elapsed.
 
 ---
 
@@ -417,7 +332,7 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 32843 ms using GCeasy tool
+These were my results with 32843 ms using GCeasy tool and Visual VM.
 
 | Category                       | Metric / Subcategory        | Value                   |
 |--------------------------------|-----------------------------|-------------------------|
@@ -453,13 +368,13 @@ These were my results with 32843 ms using GCeasy tool
 #### Second Try
 
 To reduce the Throughput I decided to increase heap size from 7 GBs to 9 GBs
-To reduce the pax pause I decreased the max GC pause time to 80 ms.
+To reduce the max pause I decreased the max GC pause time to 80 ms.
 
 ```
 -Xms9g -Xmx9g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 28123 ms.
+These were my results with 28123 ms using GCeasy tool and Visual VM.
 
 | Category                       | Metric / Subcategory        | Value                   |
 |--------------------------------|-----------------------------|-------------------------|
@@ -496,7 +411,7 @@ To reduce the Throughput I decided to increase heap size from 9 GBs to 15GBs
 -Xms15g -Xmx15g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 28064 ms:
+These were my results with 28064 ms using GCeasy tool and Visual VM:
 
 | Category                       | Metric / Subcategory        | Value                  |
 |--------------------------------|-----------------------------|------------------------|
@@ -541,7 +456,7 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseParallelGC -Xlog:gc*:gc.log  
 ```
 
-These were my results with 140545 ms:
+These were my results with 140545 ms using GCeasy tool and Visual VM:
 
 | Category                       | Metric / Subcategory        | Value                   |
 |--------------------------------|-----------------------------|-------------------------|
@@ -614,7 +529,7 @@ In my third try, to increase Throughput I will increase heap memory to 15 GBs.
 -Xms15g -Xmx15g -XX:+UseParallelGC -Xlog:gc*:gc.log  
 ```
 
-These were my results with 28643 ms:
+These were my results with 28643 using GCeasy tool and Visual VM:
 
 | Category                       | Metric / Subcategory        | Value                  |
 |--------------------------------|-----------------------------|------------------------|
@@ -653,7 +568,7 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-These were my results with 85502 ms:
+These were my results with 85502 ms using GCeasy tool and Visual VM:
 
 | Category                       | Metric / Subcategory        | Value               |
 |--------------------------------|-----------------------------|---------------------|
@@ -685,13 +600,13 @@ These were my results with 85502 ms:
 
 #### Second Try
 
-To improve the speed I decided to try and increase the heap memory.
+To improve the speed I decided to increase the heap memory.
 
 ```
 -Xms15g -Xmx15g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-These were my results with 42062 ms:
+These were my results with 42062 ms using GCeasy tool and Visual VM:
 
 | Category                       | Metric / Subcategory        | Value         |
 |--------------------------------|-----------------------------|---------------|
@@ -716,7 +631,7 @@ These were my results with 42062 ms:
 
 #### Interpretation:
 
-- The speed improved but still no better than G1GC
+- The speed improved but still no better than G1GC.
 
 ## ♻️ Garbage Collection Tuning – Conclusion
 
@@ -729,9 +644,8 @@ throughput, pause times, and execution speed:
   overhead** and
   stabilize **pause times**, but throughput **plateaued**, suggesting further gains were limited.
 - ParallelGC, initially **slow** and **pause-heavy**, improved significantly when tuned. With 15 GB heap, it achieved an
-  execution time of **27,643** ms, throughput of 88.23%, and lower max pauses (260 ms) compared to earlier runs. It was
-  the
-  fastest GC configuration overall, but with slightly higher GC overhead than G1GC.
+  execution time of **28,643** ms, throughput of 88.23%, and lower max pauses (260 ms) compared to earlier runs. It was
+  as fast as GC configuration overall, but with slightly higher GC overhead than G1GC.
 - ZGC delivered near-zero pause times (0.0225 ms avg), making it ideal for **latency-sensitive** applications. However,
   even
   with 15 GB of heap, its execution time remained the highest at **42,062** ms. Allocation stall durations were still
@@ -739,11 +653,11 @@ throughput, pause times, and execution speed:
 
 ### 🔁 GC Strategy Comparison Table
 
-| GC Type        | Exec Time (ms) | Throughput | Avg Pause (ms) | Max Pause (ms) | Heap Used | Notes                                   |
-|----------------|----------------|------------|----------------|----------------|-----------|-----------------------------------------|
-| **G1GC**       | 28,064         | 90.565%    | 38.7           | 130            | 4.48 GB   | Best trade-off between speed and memory |
-| **ParallelGC** | 28,643         | 88.23%     | 128            | 260            | 14.39 GB  | Fastest execution time after tuning     |
-| **ZGC**        | 42,062         | 99.998%    | 0.0225         | 0.0800         | 13.48 GB  | Lowest latency, but slowest performance |
+| GC Type        | Exec Time (ms) | Throughput | Avg Pause (ms) | Max Pause (ms) | Heap Used | Notes                                        |
+|----------------|----------------|------------|----------------|----------------|-----------|----------------------------------------------|
+| **G1GC**       | 28,064         | 90.565%    | 38.7           | 130            | 4.48 GB   | Fastest execution time with best memory used |
+| **ParallelGC** | 28,643         | 88.23%     | 128            | 260            | 14.39 GB  | Too much memory used                         |
+| **ZGC**        | 42,062         | 99.998%    | 0.0225         | 0.0800         | 13.48 GB  | Lowest latency, but slowest performance      |
 
 ### 🧠 Final Insight
 
@@ -752,13 +666,8 @@ throughput, pause times, and execution speed:
 
 ## 🧵 Concurrency and Synchronization
 
-- **Without Thread Pools**: Avoided shared state using thread-local `HashMap`s.
-- **Thread Pools & ForkJoin**: Merged local results after task completion.
-- **Initial ForkJoin** used `ReentrantLock`, but this was replaced for performance reasons.
-- **CompletableFuture**: Managed task dependencies without explicit synchronization.
-
-> ✅ Each model ensured thread-safety using thread-local data and post-processing aggregation.
->
+- A Reentrant Lock was tried to implement in counting but it proved to be slower than the sequential version. After
+  that, another method was used to count.
 
 ---
 
@@ -776,12 +685,12 @@ throughput, pause times, and execution speed:
     - **OS**: macOS Sequoia (15.4.1)
     - **IDE**: IntelliJ IDEA (2024.2.3)
 
-- **Tools**: VisualVM, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
+- **Tools**: VisualVM
 - **Dataset**: Wikipedia XML dump max pages - 20k, 40k, 80k pages
 - **Running configuration**:
 
 ```bash
-  -Xms10g -Xmx10g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log
+  -Xms4g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log
 ```
 
 ### Metrics Collected
@@ -858,7 +767,7 @@ Find bellow the screenshots of the console execution logs (elapsed time, number 
 
 At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a `java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
 ![img.png](images/java_heap_space_error.png)
-This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 10k, 40k and 80k.   
+This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 20k, 40k and 80k.   
 
 ##### Sequential
 
@@ -1042,7 +951,6 @@ This shows the CompletableFuture solution scales robustly—maintaining high CPU
 | **Fork/Join**               | Low → Very Low    | ✅ Excellent       | Best CPU scaling; minor GC overhead at max   |
 | **CompletableFuture**       | Low → Low-Medium  | ✅ Good            | Clean async model; minimal GC and robust     |
 
-> 📌 All metrics (CPU%, heap usage, GC activity) collected via VisualVM “Monitor” views; execution times via `System.currentTimeMillis()`; heap/GC tuned with `-Xms10g -Xmx10g -XX:+UseG1GC -XX:MaxGCPauseMillis=80`.
 
 ---
 
@@ -1071,11 +979,7 @@ In this project we have explored and compared five distinct approaches to large-
 
 5. **Bottlenecks & Future Work**
   - **XML parsing** remains strictly sequential; refactoring to a truly parallel parser (e.g., chunked or streaming parse) could unlock further gains.
-  - **GC optimizations** such as tuning region sizes or exploring ZGC’s concurrent phases may further reduce GC overhead under high load.
   - **Spliterator + Parallel Streams** or a custom non-blocking reader could simplify code and improve maintainability on top of the thread-pool model.
-
-**Final Recommendation:**  
-For large-scale word-count tasks on multicore systems, we recommend the **ExecutorService (Thread Pool)** approach with **G1GC** tuned to a 10–15 GB heap. This combination delivers strong performance, predictable GC behavior, and straightforward code maintenance.
 
 
 ---
