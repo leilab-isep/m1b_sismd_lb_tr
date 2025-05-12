@@ -5,8 +5,8 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class WordCount_WithoutThreadPool {
-    static final int maxPages = 100000;
-    static final String fileName = "enwiki.xml";
+    static final int maxPages = 20000;
+    static final String fileName = "enwiki-20250201.xml";
 
     private static final HashMap<String, Integer> counts =
             new HashMap<String, Integer>();

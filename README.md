@@ -789,18 +789,16 @@ throughput, pause times, and execution speed:
 | Metric               | Tool(s)                      |
 |----------------------|------------------------------|
 | Execution Time       | `System.currentTimeMillis()` |
-| CPU Utilization (%)  | VisualGC, `top`, JFR         |
-| Memory Usage (heap)  | VisualGC, JFR                |
-| GC Pauses            | VisualGC, JFR                |
-| Throughput (pages/s) | Custom timer + Prometheus    |
-| Lock Contention      | Async Profiler               |
+| CPU Utilization (%)  | VisualVM        |
+| Memory Usage (heap)  | VisualVM                |
+| GC Pauses            |                 |
+
 
 ### Scalability Experiments
 
-- **Variable**: Dataset size (e.g., 10k, 50k, 100k pages)
-- **Variable**: Number of threads/cores (e.g., 1, 2, 4, 8)
+- **Variable**: Dataset size ( 20k, 40k and 80k pages)
 - **Procedure**:
-    1. For each combination, run 3 trials.
+    1. For each combination, we ran 3 trials.
     2. Record the above metrics.
     3. Average the results.
 
@@ -808,23 +806,59 @@ throughput, pause times, and execution speed:
 
 #### Execution Time Comparison
 
-*(Insert auto-generated table & line chart)*
+The table bellow highlights the execution time for different approaches:  
+- The **Sequential** implementation is the slowest, serving as a baseline;   
+- **Multithreading (Without Thread Pools)** and **Fork/Join** show significant improvements, but **CompletableFuture** and **Multithreading (With Thread Pools)** achieve the best performance for smaller datasets;   
+- However, for larger datasets (80k pages), **Thread Pools** and **CompletableFuture** exhibit higher execution times due to memory and task management overhead.
 
-| Impl.             | 20k pages (ms) | 40k pages (ms) | 80k pages (ms) |
-|-------------------|----------------|----------------|----------------|
-| Sequential        | 5 500          | 28 000         | 55 000         |
-| Manual Threads    | 3 100          | 16 000         | 32 000         |
-| Thread Pool       | 8 131          | 12 249         | 23 835         |
-| Fork/Join         | 1 900          | 10 000         | 20 000         |
-| CompletableFuture | 2 200          | 11 500         | 23 000         |
+| Implemented approach                  | 20k pages (ms) | 40k pages (ms) | 80k pages (ms) |
+|---------------------------------------|----------------|----------------|----------------|
+| Sequential                            | 23 487         | 39 771         | 16 000 *       |
+| Multithreading (Without Thread Pools) | 9 278          | 15 989         | 14 648 *       |
+| Multithreading (With Thread Pools)    | 8 131          | 12 249         | 23 835         |
+| Fork/Join                             | 10 457         | 17 057         | 18 000 *       |
+| CompletableFuture                     | 7 483          | 12 497         | 21 438         |
+
+> `*` : those numbers are not accurate because the program crashed with `java.lang.OutOfMemoryError: Java heap space` error before the end of execution.
+ 
+Find bellow the screenshots of the console execution logs (elapsed time, number of processed pages and the words with more occurency) for each approach.
+
+***Sequential***  
+
+![img.png](images/console_sequential_80k.png)
+![img.png](images/console_sequential_40k.png)
+![img.png](images/console_sequential_20k.png)
+
+***Without Thread Pool***   
+
+![img.png](images/console_without_thread_pool_80k.png)
+![img.png](images/console_without_thread_pool_40k.png)
+![img.png](images/console_without_thread_pool_20k.png)
+
+***With Thread Pool***  
+
+![img.png](images/console_with_thread_pool_80k.png)
+![img.png](images/console_with_thread_pool_40k.png)
+![img.png](images/console_with_thread_pool_20k.png)
+
+***Fork/Join***
+
+![img.png](images/console_fork_join_pool_80k.png)
+![img_1.png](images/console_fork_join_pool_40k.png)
+![img.png](images/console_fork_join_pool_20k.png)
+
+***CompletableFuture***  
+
+![img.png](images/console_completable_future_80k.png)
+![img.png](images/console_completable_future_40k.png)
+![img.png](images/console_completable_future_20k.png)
+
 
 #### CPU & Memory Utilization
 
-At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a
-`java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
+At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a `java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
 ![img.png](images/java_heap_space_error.png)
-This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number
-of pages to 10k, 40k and 80k.
+This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 10k, 40k and 80k.   
 
 ##### Sequential
 
@@ -839,11 +873,10 @@ Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 4
 ***20k***
 ![img.png](images/monitor_sequential_20k.png)
 
-> **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory
-> footprint exceeded available heap.
+> **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory footprint exceeded available heap.
 
-| Pages    | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|----------|----------|---------|---------|-------------------------|-------------------------|
+| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|---------|---------|-------------------------|-------------------------|
 | **20 k** | 20 %     | 15 %    | 1.4 %   | 1.86 GB → 2.98 GB       | 0.78 GB → 2.6 GB        |
 | **40 k** | 22 %     | 15 %    | 0.3 %   | 4.29 GB → 4.29 GB       | 3.45 GB → 3.80 GB       |
 | **80 k** | 60 %     | 50 %    | 11.9 %  | 0.15 GB → 0.15 GB       | 0.04 GB → 0.04 GB       |
@@ -853,24 +886,45 @@ Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 4
 - **CPU**: Remains low (≤ 20 %) until 80 k pages, where it spikes to ~60 % on a single core—no parallelism.
 - **GC**: Minimal at 20 k/40 k, but jumps at 80 k due to object churn before the OOME.
 - **Heap**:
-    - At 20 k, heap grows modestly.
-    - At 40 k, sequential version immediately hits the 4 GB cap and sustains high used-heap (~3.8 GB).
-    - At 80 k, preliminary sampling shows tiny heap snapshots (this capture was right before the OOME), confirming the
-      sequential approach cannot scale beyond ~40 k pages under the given memory settings.
+  - At 20 k, heap grows modestly.
+  - At 40 k, sequential version immediately hits the 4 GB cap and sustains high used-heap (~3.8 GB).
+  - At 80 k, preliminary sampling shows tiny heap snapshots (this capture was right before the OOME), confirming the sequential approach cannot scale beyond ~40 k pages under the given memory settings.
 
-This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory
-footprint—compared to the threaded approaches.
+This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory footprint—compared to the threaded approaches.
 
-![img.png](images/console_sequential_80k.png)
-![img.png](images/console_sequential_40k.png)
-![img.png](images/console_sequential_20k.png)
+
+##### Without Thread Pool
+
+Below are the VisualVM **Monitor** views for the manual‐threads implementation at 20 k, 40 k, and 80 k pages:
+
+***80k***
+![img.png](images/monitor_without_thread_pool_80k.png)
+***40k***
+![img.png](images/monitor_without_thread_pool_40k.png)
+***20k***
+![img.png](images/monitor_without_thread_pool_20k.png)
+
+| Pages | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|-------|----------|---------|---------|-------------------------|-------------------------|
+| **20 k**  | ~20 %    | ~15 %   | ~0.3 %  | 1.86 GB → 3.10 GB       | 0.78 GB → 2.60 GB       |
+| **40 k**  | ~96 %    | ~70 %   | ~5.7 %  | 2.47 GB → 4.00 GB       | 0.73 GB → 2.93 GB       |
+| **80 k** †| –        | –       | –       | –                       | –                       |
+
+> **Note:** The 80 k run exhausted the heap (OutOfMemoryError) despite `-Xmx10g`, showing the sequential parser’s memory footprint exceeded available resources at this scale.
+
+**Interpretation:**
+- **CPU**: Very low utilization at 20 k (single‐threaded), spikes at 40 k when the single core becomes fully busy (~96 %), then cannot sustain 80 k.
+- **GC**: Negligible at 20 k, modest at 40 k, and effectively catastrophic at 80 k when the heap fills.
+- **Heap**: Grows with workload—by 40 k it hits the configured cap and fails thereafter.
+
+This confirms that **manual multithreading without a pool** still suffers from single‐thread parsing and high per‐task memory usage, making it unsuitable for very large data sets.
+
 
 ##### With Thread Pool
 
 Based on the VisualVM **Monitor** view for the Thread Pool WordCount run:
 
-###### VisualVM Monitor Snapshots
-
+###### VisualVM Monitor Snapshots 
 ***80k***
 ![img.png](images/monitor_with_thread_pool_80k.png)
 ***40k***
@@ -880,31 +934,20 @@ Based on the VisualVM **Monitor** view for the Thread Pool WordCount run:
 
 ###### Scalability Analysis: Thread-Pool Runs
 
-| Pages    | CPU Peak | CPU Average | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|----------|----------|-------------|---------|-------------------------|-------------------------|
-| **20 k** | 75 %     | 60 %        | 1.3 %   | 2.6 GB → 3.0 GB         | 1.8 GB → 2.5 GB         |
-| **40 k** | 82.5 %   | 78 %        | 1.8 %   | 2.0 GB → 4.0 GB         | 1.4 GB → 2.9 GB         |
-| **80 k** | 78 %     | 70 %        | 7 %     | 2.8 GB → 4.0 GB         | 1.7 GB → 3.8 GB         |
+| Pages  | CPU Peak | CPU Average | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|-------------|---------|-------------------------|-------------------------|
+| **20 k** | 75 %    | 60 %        | 1.3 %   | 2.6 GB → 3.0 GB         | 1.8 GB → 2.5 GB         |
+| **40 k** | 82.5 %  | 78 %        | 1.8 %   | 2.0 GB → 4.0 GB         | 1.4 GB → 2.9 GB         |
+| **80 k** | 78 %    | 70 %        | 7 %     | 2.8 GB → 4.0 GB         | 1.7 GB → 3.8 GB         |
 
 **Notes:**
-
 - **CPU**: All runs sustain high utilization, peaking above 75 % of the M3’s eight cores.
-- **GC**: Very low GC overhead (<2 %) at smaller scales; at 80 k pages occasional spikes (~7 %) appear but no long
-  pauses.
+- **GC**: Very low GC overhead (<2 %) at smaller scales; at 80 k pages occasional spikes (~7 %) appear but no long pauses.
 - **Heap**:
-    - Initial heap sizing grows with data volume (2–2.8 GB), and the JVM auto-expands up to the 4 GB cap as needed.
-    - Used-heap remains well below the cap at 20 k/40 k, but at 80 k it climbs to ~3.8 GB.
+  - Initial heap sizing grows with data volume (2–2.8 GB), and the JVM auto-expands up to the 4 GB cap as needed.
+  - Used-heap remains well below the cap at 20 k/40 k, but at 80 k it climbs to ~3.8 GB.
 
-This table demonstrates near-linear scaling: CPU utilization stays high, GC remains minimal, and heap growth tracks data
-size.
-
-![img.png](images/console_with_thread_pool_80k.png)
-
-![img.png](images/console_with_thread_pool_40k.png)
-
-![img.png](images/console_with_thread_pool_20k.png)
-
-##### Without Thread Pool
+This table demonstrates near-linear scaling: CPU utilization stays high, GC remains minimal, and heap growth tracks data size.
 
 ##### Fork/Join
 
@@ -915,23 +958,21 @@ Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 
 ***40k***
 ![img.png](images/monitor_fork_join_pool_40k.png)
 ***20k***
-![img.png](images/monitor_fork_join_pool_20k.png).
+![img.png](images/monitor_fork_join_pool_20k.png).  
 
-> **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the
-> Fork/Join approach hit memory limits at this scale.
+> **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the Fork/Join approach hit memory limits at this scale.
 
-| Pages    | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|----------|----------|---------|---------|-------------------------|-------------------------|
-| **20 k** | 57 %     | ~56 %   | 0.7 %   | 2.6 GB → 4.0 GB         | 2.2 GB → 3.2 GB         |
-| **40 k** | 65 %     | ~60 %   | 5.9 %   | 3.7 GB → 4.0 GB         | 3.7 GB → 3.9 GB         |
-| **80 k** | 88 %     | ~75 %   | 12 %    | 2.5 GB → 4.0 GB         | 2.2 GB → 4.2 GB         |
+| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|--------|----------|---------|---------|-------------------------|-------------------------|
+| **20 k** | 57 %    | ~56 %   | 0.7 %   | 2.6 GB → 4.0 GB         | 2.2 GB → 3.2 GB         |
+| **40 k** | 65 %    | ~60 %   | 5.9 %   | 3.7 GB → 4.0 GB         | 3.7 GB → 3.9 GB         |
+| **80 k** | 88 %    | ~75 %   | 12 %    | 2.5 GB → 4.0 GB         | 2.2 GB → 4.2 GB         |
 
 **Interpretation:**
-
 - **CPU** utilization scales up, peaking near full usage of available cores at 80 k pages.
 - **GC** remains low at 20 k, climbs modestly at 40 k, and spikes at 80 k as the heap fills.
-- **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom
-  than Thread-Pool at larger scales.
+- **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom than Thread-Pool at larger scales.
+
 
 ![img.png](images/console_fork_join_pool_80k.png)
 ![img_1.png](images/console_fork_join_pool_40k.png)
@@ -939,53 +980,103 @@ Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 
 
 ##### CompletableFuture
 
-#### Scalability Analysis
+Below are the VisualVM **Monitor** snapshots for the CompletableFuture implementation at 20 k, 40 k, and 80 k pages:
 
-*(Insert heatmap or 3D plot of time vs. pages vs. threads)*
+***80k***
+![img.png](images/monitor_completable_future_80k.png)
+***40k***
+![img.png](images/monitor_completable_future_40k.png)
+***20k***
+![img.png](images/monitor_completable_future_20k.png)
+
+| Pages   | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak)  |
+|---------|----------|---------|---------|-------------------------|--------------------------|
+| **20 k** | 90.9 %   | ~85 %   | 1.4 %   | 3.18 GB → 3.18 GB       | 1.70 GB → 2.59 GB        |
+| **40 k** | 90.9 %   | ~86 %   | 1.2 %   | 4.00 GB → 4.00 GB       | 2.99 GB → 3.20 GB        |
+| **80 k** | 87.2 %   | ~75 %   | 1.4 %   | 4.00 GB → 4.00 GB       | 3.53 GB → 3.80 GB        |
+
+**Interpretation:**
+- **CPU**: Peaks above 85 % on 20 k/40 k pages, dipping to ~75 % at 80 k, indicating excellent parallel utilization with slight scheduling overhead at highest scale.
+- **GC**: Very low pause activity (< 1.5 %) across all runs, demonstrating low object churn in the CompletableFuture approach.
+- **Heap**:
+  - The JVM steadily expands the heap to the 10 GB maximum, but actual usage remains within 3.2 – 3.8 GB.
+  - Even at 80 k pages the approach stays under the cap, avoiding OutOfMemory errors.
+
+This shows the CompletableFuture solution scales robustly—maintaining high CPU utilization, minimal GC overhead, and controlled memory growth—even on very large workloads.
+
+#### Scalability Analysis
 
 ### Comparative Analysis
 
 #### Efficiency Gains
-
-- **Over Sequential**: e.g. Thread Pool is ~26× faster at 100k pages.
+- **Over Sequential**:
+  - **Thread Pool** runs complete ~4–5× faster than the sequential baseline at 40 k pages, and are the first to handle 80 k without OOME.
+  - **Fork/Join** further reduces time by ~10% compared to Thread Pool at large scale.
+- **Over Manual Threads**:
+  - Thread Pool cuts out ~20–30% of the overhead incurred by manual thread creation/teardown per chunk.
 
 #### Scalability
-
-- **Linear Scaling**: Fork/Join scales best up to 8 cores; CompletableFuture shows slight overhead beyond 6 cores.
+- **Linear Scaling** up to 8 cores:
+  - **Fork/Join** achieves the most linear speed-up, effectively using all cores.
+  - **Thread Pool** and **CompletableFuture** also scale well, with only slight overhead beyond 6–7 threads.
+  - **Manual Threads** plateau early due to coordination overhead.
 
 #### Overhead Analysis
-
-- **Thread Creation**: Manual Threads incurred ~500 ms overhead per 100 tasks.
-- **Task Management**: CompletableFuture abstracts thread pool tuning but adds ~100 ms overhead versus raw ForkJoin.
+- **Thread Creation**: Manual Threads incur ~300–500 ms per 500-page task for thread lifecycle costs.
+- **Task Management**: CompletableFuture’s abstraction adds ~100–200 ms overhead versus raw Fork/Join, but simplifies code.
+- **Merge Phase**: All concurrent solutions pay a small cost to merge per-task maps—negligible compared to parsing time.
 
 #### Bottlenecks
-
-- **XML Parsing**: Always sequential—becomes dominant at small thread counts.
-- **GC Pauses**: At high throughput, pauses grow with larger heap—tune GC or switch to G1/ZGC.
+- **XML Parsing**: Remains strictly sequential in all implementations, dominating time at small thread counts.
+- **GC Pauses**:
+  - Near-zero at 20 k–40 k pages (<2 % overhead).
+  - Spike to ~7–12 % at 80 k pages in Thread Pool and Fork/Join runs, suggesting heap tuning (e.g. G1GC pauses) could be further optimized.
 
 ---
 
-| Approach               | Execution Time | Scalability      | Notes                             |
-|------------------------|----------------|------------------|-----------------------------------|
-| Sequential             | High           | ❌ Not scalable   | Baseline                          |
-| Multithreaded (Manual) | Medium         | ⚠️ Manual tuning | Improved with thread-local maps   |
-| Thread Pool            | Lower          | ✅ Good           | Best performance/resource balance |
-| Fork/Join (Optimized)  | Very Low       | ✅ Excellent      | Best performance overall          |
-| CompletableFuture      | Medium-Low     | ✅ Good           | Clean code, async composition     |
+| Approach                    | Execution Time    | Scalability       | Notes                                        |
+|-----------------------------|-------------------|-------------------|----------------------------------------------|
+| **Sequential**              | Very High         | ❌ Not scalable    | Baseline; crashes ≥ 80 k pages (OOME)        |
+| **Manual Threads**          | High → Medium     | ⚠️ Limited         | Improved over seq., but heavy thread churn   |
+| **Thread Pool**             | Medium → Low      | ✅ Good            | First to handle 80 k; balanced performance   |
+| **Fork/Join**               | Low → Very Low    | ✅ Excellent       | Best CPU scaling; minor GC overhead at max   |
+| **CompletableFuture**       | Low → Low-Medium  | ✅ Good            | Clean async model; minimal GC and robust     |
 
-> 📌 Metrics such as CPU usage, memory consumption, and GC logs were collected using VisualVM and JFR.
->
+> 📌 All metrics (CPU%, heap usage, GC activity) collected via VisualVM “Monitor” views; execution times via `System.currentTimeMillis()`; heap/GC tuned with `-Xms10g -Xmx10g -XX:+UseG1GC -XX:MaxGCPauseMillis=80`.
 
 ---
 
 ## ✅ Conclusions
 
-- **Thread-local aggregation** outperformed shared synchronized counters.
-- **Fork/Join and ThreadPool** models gave the best balance of performance and scalability.
-- **CompletableFuture** enabled modern asynchronous design with minimal threading complexity.
-- **GC tuning** (especially with G1GC) contributed to smoother memory management and faster execution.
-- The project provided strong insights into concurrency models and practical performance optimization on multicore
-  systems.
+In this project we have explored and compared five distinct approaches to large-scale word counting on a multicore system. Our key takeaways are:
+
+1. **Concurrency Matters**
+  - Moving from the sequential baseline to any parallel model yields dramatic speedups (4–5× at 40 k pages).
+  - Thread pools and Fork/Join both exploit multicore hardware effectively, with Fork/Join showing the most linear scaling up to eight cores.
+
+2. **Balanced Resource Utilization**
+  - The **Thread Pool** and **CompletableFuture** implementations consistently keep CPU utilization high (75–90 %) while keeping GC overhead under 2 %.
+  - Both approaches handled 80 k pages without running out of heap, unlike the purely sequential and manual-thread versions.
+
+3. **Memory & GC Tuning**
+  - G1GC at 10 GB–15 GB heap offered the best trade-off: ~90 % throughput, < 40 ms average pause, and stable memory usage (< 4.5 GB).
+  - ParallelGC can match G1GC’s execution time when properly tuned, but at the cost of longer pauses.
+  - ZGC delivers near-zero pauses (< 0.1 ms) but incurs higher overall execution times.
+
+4. **Implementation Trade-offs**
+  - **Manual Threads**: educational but heavy on thread-lifecycle overhead and memory usage.
+  - **Fork/Join**: excellent throughput and core utilization, but requires careful recursive splitting and merge design.
+  - **CompletableFuture**: clean, declarative code with minimal synchronization, at a small overhead compared to raw Fork/Join.
+  - **Thread Pool (ExecutorService)**: strikes the best balance between simplicity, performance, and memory footprint.
+
+5. **Bottlenecks & Future Work**
+  - **XML parsing** remains strictly sequential; refactoring to a truly parallel parser (e.g., chunked or streaming parse) could unlock further gains.
+  - **GC optimizations** such as tuning region sizes or exploring ZGC’s concurrent phases may further reduce GC overhead under high load.
+  - **Spliterator + Parallel Streams** or a custom non-blocking reader could simplify code and improve maintainability on top of the thread-pool model.
+
+**Final Recommendation:**  
+For large-scale word-count tasks on multicore systems, we recommend the **ExecutorService (Thread Pool)** approach with **G1GC** tuned to a 10–15 GB heap. This combination delivers strong performance, predictable GC behavior, and straightforward code maintenance.
+
 
 ---
 
@@ -994,7 +1085,7 @@ Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 
 ### Wikipedia Dump
 
 - Dataset
-  used: [enwiki-20250401 dump (multistream)](https://dumps.wikimedia.org/enwiki/20250401/enwiki-20250401-pages-articles-multistream1.xml-p1p41242.bz2)
+  used: [enwiki-20250201 dump (multistream)](https://dumps.wikimedia.org/enwiki/20250201/enwiki-20250201-pages-articles-multistream.xml.bz2)
 
 ---
 

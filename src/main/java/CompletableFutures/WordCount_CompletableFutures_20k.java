@@ -4,16 +4,15 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-public class WordCount_CompletableFutures {
-    static final int maxPages = 100000;
-    static final String fileName = "enwiki.xml";
+public class WordCount_CompletableFutures_20k {
+    static final int maxPages = 20000;
+    static final String fileName = "enwiki-20250201.xml";
 
     private static final HashMap<String, Integer> counts =
             new HashMap<String, Integer>();
     
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
-        int numberOfThreads = Runtime.getRuntime().availableProcessors();
 
         Iterable<Page_CompletableFutures> pages = new Pages_CompletableFutures(maxPages, fileName);
 
