@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-public class WordCount_CompletableFutures_20k {
+public class WordCount_CompletableFutures {
     static final int maxPages = 20000;
     static final String fileName = "enwiki-20250201.xml";
 
