@@ -9,11 +9,13 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class WordCount_ForkJoinPool {
-    static final int maxPages = 20000;
+    static final int maxPages = 100000;
     static final String fileName = "enwiki-20250201.xml";
 
 
     public static void main(String[] args) throws Exception {
+
+        Thread.sleep(3000);
 
         ForkJoinPool pool = new ForkJoinPool();
         long start = System.currentTimeMillis();
@@ -26,7 +28,7 @@ public class WordCount_ForkJoinPool {
                         .collect(Collectors.toList());
 
 
-        int processedPages = 0;
+        int processedPages = pageList.size();
         ParsePage_ForkJoinPool parsePage = new ParsePage_ForkJoinPool(pageList);
         Map<String, Integer> wordCounts = pool.invoke(parsePage);
 

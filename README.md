@@ -79,14 +79,20 @@ For each chunk:
 List<Thread> threadList = new ArrayList<>();
 List<ParsePage_WithoutThreadPool> parsePageList = new ArrayList<>();
 
-for(int i = 0;i<numberOfThreads;i++){
-  int start = i * chunkSize;
-  int end = Math.min(pageLength, start + chunkSize);
-  List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
-  ParsePage_WithoutThreadPool parsePage = new ParsePage_WithoutThreadPool(pageSubList);
-  Thread thread = new Thread(parsePage);
-  threadList.add(thread);
-  parsePageList.add(parsePage);
+for(
+int i = 0;
+i<numberOfThreads;i++){
+int start = i * chunkSize;
+int end = Math.min(pageLength, start + chunkSize);
+List<Page_WithoutThreadPool> pageSubList = pageList.subList(start, end);
+ParsePage_WithoutThreadPool parsePage = new ParsePage_WithoutThreadPool(pageSubList);
+Thread thread = new Thread(parsePage);
+  threadList.
+
+add(thread);
+  parsePageList.
+
+add(parsePage);
 }
 ```
 
@@ -411,40 +417,38 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 13457 ms using GCeasy tool
+These were my results with 32843 ms using GCeasy tool
 
-| Category                       | Metric / Subcategory        | Value                  |
-|--------------------------------|-----------------------------|------------------------|
-| **Memory Overview**            | Young Generation Allocated  | 2.51 GB                |
-|                                | Young Generation Peak       | 1.87 GB                |
-|                                | Avg Promotion Rate          | 188 MB/sec             |
-|                                | Old Generation Allocated    | 4.49 GB                |
-|                                | Old Generation Peak         | 3.07 GB                |
-|                                | Humongous Object Peak       | 312 MB                 |
-|                                | Meta Space Allocated        | 10.62 MB               |
-|                                | Meta Space Peak             | 10.25 MB               |
-|                                | Total Allocated (Heap+Meta) | 7.01 GB                |
-|                                | Total Peak (Heap+Meta)      | 4.59 GB                |
-| **Key Performance Indicators** | Throughput                  | 90.839%                |
-|                                | CPU Time                    | 18s 970ms              |
-|                                | User Time                   | 15s 310ms              |
-|                                | System Time                 | 3s 660ms               |
-|                                | Avg GC Pause Time           | 33.0 ms                |
-|                                | Max GC Pause Time           | 180 ms                 |
-| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 49 (98.0%)             |
-|                                | 100 - 200 ms Pauses         | 1 (2.0%)               |
-| **GC Event Causes**            | G1 Evacuation Pause         | 47 events (avg 34.7ms) |
-|                                | G1 Humongous Allocation     | 1 event (20.0ms)       |
-| **Object Allocation Stats**    | Total Created Bytes         | 29.29 GB               |
-|                                | Total Promoted Bytes        | 3.31 GB                |
-|                                | Avg Creation Rate           | 1.62 GB/sec            |
+| Category                       | Metric / Subcategory        | Value                   |
+|--------------------------------|-----------------------------|-------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 3.07 GB                 |
+|                                | Old Generation Peak         | 6.79 GB                 |
+|                                | Humongous Object Peak       | 404 MB                  |
+|                                | Meta Space Allocated        | 10.75 MB                |
+|                                | Total Allocated (Heap+Meta) | 7.01 GB                 |
+| **Key Performance Indicators** | Throughput                  | 84.771%                 |
+|                                | CPU Time                    | 67.15 s                 |
+|                                | User Time                   | 61.22 s                 |
+|                                | System Time                 | 5.93 s                  |
+|                                | Avg GC Pause Time           | 42.8 ms                 |
+|                                | Max GC Pause Time           | 660 ms                  |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 96.32% (131 GCs)        |
+|                                | 500 - 700 ms Pauses         | 2.21% (3 GCs)           |
+| **GC Event Causes**            | G1 Evacuation Pause         | 99 events (avg 37.8 ms) |
+|                                | G1 Compaction Pause         | 3 events (avg 620 ms)   |
+|                                | G1 Humongous Allocation     | 9 events (avg 21.2 ms)  |
+| **Object Allocation Stats**    | Total Created Bytes         | 52.62 GB                |
+|                                | Total Promoted Bytes        | 9.27 GB                 |
+|                                | Avg Creation Rate           | 1.38 GB/sec             |
+|                                | Avg Promotion Rate          | 248.24 MB/sec           |
 
 #### Interpretation:
 
-- Throughput seems low at 90.839%.
-- Max pause at 180s was a bit too much.
+- Throughput seems low at 84.771%.
+- The heap was fully utilized.
+- Maximum pause time reached 660 ms
 
-![VisualVM](images/ForkJoinPool_G1GC.png)
+![VisualVM](images/ForkJoinPool_G1GC_1.png)
 
 #### Second Try
 
@@ -455,39 +459,34 @@ To reduce the pax pause I decreased the max GC pause time to 80 ms.
 -Xms9g -Xmx9g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 12527ms
+These were my results with 28123 ms.
 
-| Category                       | Metric / Subcategory        | Value                  |
-|--------------------------------|-----------------------------|------------------------|
-| **Memory Overview**            | Young Generation Allocated  | 1.81 GB                |
-|                                | Young Generation Peak       | 1.7 GB                 |
-|                                | Old Generation Allocated    | 7.19 GB                |
-|                                | Old Generation Peak         | 3.02 GB                |
-|                                | Humongous Object Peak       | 208 MB                 |
-|                                | Meta Space Allocated        | 10.56 MB               |
-|                                | Meta Space Peak             | 10.23 MB               |
-|                                | Total Allocated (Heap+Meta) | 9.01 GB                |
-|                                | Total Peak (Heap+Meta)      | 4.82 GB                |
-| **Key Performance Indicators** | Throughput                  | 90.87%                 |
-|                                | CPU Time                    | 15s 530ms              |
-|                                | User Time                   | 12s 990ms              |
-|                                | System Time                 | 2s 540ms               |
-|                                | Avg GC Pause Time           | 32.3 ms                |
-|                                | Max GC Pause Time           | 110 ms                 |
-| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 47 (97.92%)            |
-|                                | 100 - 200 ms Pauses         | 1 (2.08%)              |
-| **GC Event Causes**            | G1 Evacuation Pause         | 48 events (avg 32.3ms) |
-| **Object Allocation Stats**    | Total Created Bytes         | 29.16 GB               |
-|                                | Total Promoted Bytes        | 3.22 GB                |
-|                                | Avg Creation Rate           | 1.72 GB/sec            |
-|                                | Avg Promotion Rate          | 194.38 MB/sec          |
+| Category                       | Metric / Subcategory        | Value                   |
+|--------------------------------|-----------------------------|-------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.44 GB                 |
+|                                | Old Generation Peak         | 7.58 GB                 |
+|                                | Humongous Object Peak       | 560 MB                  |
+|                                | Meta Space Allocated        | 10.81 MB                |
+|                                | Total Allocated (Heap+Meta) | 9.01 GB                 |
+| **Key Performance Indicators** | Throughput                  | 88.149%                 |
+|                                | CPU Time                    | 44.350 s                |
+|                                | Avg GC Pause Time           | 40.7 ms                 |
+|                                | Max GC Pause Time           | 250 ms                  |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 97 (98.98%)             |
+|                                | 200 - 300 ms Pauses         | 1 (1.02%)               |
+| **GC Event Causes**            | G1 Evacuation Pause         | 87 events (avg 45.3 ms) |
+|                                | G1 Humongous Allocation     | 1 event (44.1 ms)       |
+| **Object Allocation Stats**    | Total Created Bytes         | 69.11 GB                |
+|                                | Total Promoted Bytes        | 7.93 GB                 |
+|                                | Avg Creation Rate           | 2.05 GB/sec             |
+|                                | Avg Promotion Rate          | 240.9 MB/sec            |
 
-![VM](images/ForkJoinPool_G1GC_2Try.png)
+![VM](images/ForkJoinPool_G1GC_2.png)
 
 #### Interpretation:
 
-- Throughput improved but still is low at 90.87%.
-- Max pause was solved
+- Throughput improved but still is low at 88.15%.
+- Max pause was solved.
 
 #### Third Try
 
@@ -497,7 +496,7 @@ To reduce the Throughput I decided to increase heap size from 9 GBs to 15GBs
 -Xms15g -Xmx15g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log 
 ```
 
-These were my results with 11877ms:
+These were my results with 28064 ms:
 
 | Category                       | Metric / Subcategory        | Value                  |
 |--------------------------------|-----------------------------|------------------------|
@@ -524,11 +523,11 @@ These were my results with 11877ms:
 |                                | Avg Creation Rate           | 1.79 GB/sec            |
 |                                | Avg Promotion Rate          | 211.22 MB/sec          |
 
-![VM](images/ForkJoinPool_G1GC_3Try.png)
+![VM](images/ForkJoinPool_G1GC_3.png)
 
 #### Interpretation:
 
-- Throughput lowered but still is low at 90.565%, meaning no matter how much memory I allocate, it doesn't get lower.
+- Throughput improved but still is low at 88.483%, meaning no matter how much memory I allocate, it doesn't get higher.
 
 ---
 
@@ -542,40 +541,33 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseParallelGC -Xlog:gc*:gc.log  
 ```
 
-These were my results with 11904 ms:
+These were my results with 140545 ms:
 
-| Category                       | Metric / Subcategory        | Value                  |
-|--------------------------------|-----------------------------|------------------------|
-| **Memory Overview**            | Young Generation Allocated  | 2.04 GB                |
-|                                | Young Generation Peak       | 2.04 GB                |
-|                                | Old Generation Allocated    | 4.67 GB                |
-|                                | Old Generation Peak         | 2.99 GB                |
-|                                | Meta Space Allocated        | 10.5 MB                |
-|                                | Meta Space Peak             | 10.17 MB               |
-|                                | Total Allocated (Heap+Meta) | 6.72 GB                |
-|                                | Total Peak (Heap+Meta)      | 4.35 GB                |
-| **Key Performance Indicators** | Throughput                  | 90.254%                |
-|                                | CPU Time                    | 18s 440ms              |
-|                                | User Time                   | 14s 250ms              |
-|                                | System Time                 | 4s 190ms               |
-|                                | Avg GC Pause Time           | 55.4 ms                |
-|                                | Max GC Pause Time           | 110 ms                 |
-| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 27 (96.43%)            |
-|                                | 100 - 200 ms Pauses         | 1 (3.57%)              |
-| **GC Event Causes**            | Allocation Failure          | 28 events (avg 55.4ms) |
-| **GC Stats**                   | Total GC Count              | 28                     |
-|                                | Total GC Time               | 1s 550ms               |
-|                                | Full GCs                    | 0                      |
-| **Object Allocation Stats**    | Total Created Bytes         | 29.68 GB               |
-|                                | Total Promoted Bytes        | 3.08 GB                |
-|                                | Avg Creation Rate           | 1.87 GB/sec            |
-|                                | Avg Promotion Rate          | 198.22 MB/sec          |
+| Category                       | Metric / Subcategory        | Value                   |
+|--------------------------------|-----------------------------|-------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.04 GB                 |
+|                                | Old Generation Allocated    | 4.67 GB                 |
+|                                | Meta Space Allocated        | 10.94 MB                |
+|                                | Total Allocated (Heap+Meta) | 6.72 GB                 |
+| **Key Performance Indicators** | Throughput                  | 19.656%                 |
+|                                | CPU Time                    | 17 min 33 sec           |
+|                                | Avg GC Pause Time           | 649 ms                  |
+|                                | Max GC Pause Time           | 1.29 sec                |
+| **GC Pause Distribution**      | 0 - 1 sec Pauses            | 159 (87.85%)            |
+|                                | 1 - 2 sec Pauses            | 22 (12.15%)             |
+| **GC Event Causes**            | Ergonomics                  | 157 events (avg 739 ms) |
+|                                | Allocation Failure          | 24 events (avg 57.5 ms) |
+| **Object Allocation Stats**    | Total Created Bytes         | 70.04 GB                |
+|                                | Total Promoted Bytes        | 4.44 GB                 |
+|                                | Avg Creation Rate           | 490.68 MB/sec           |
+|                                | Avg Promotion Rate          | 31.08 MB/sec            |
 
-![VM](images/ForkJoinPool_ParallelGC_1st.png)
+![VM](images/ForkJoinPool_ParallelGC_1.png)
 
 #### Interpretation:
 
-- Throughput seems low at 90.254%.
+- Throughput got really low at 19.656%.
+- Pauses exceeded 650 ms.
 
 #### Second Try
 
@@ -585,40 +577,69 @@ In my second try, to increase Throughput I will increase heap memory to 10Gbs.
 -Xms10g -Xmx10g -XX:+UseParallelGC -Xlog:gc*:gc.log  
 ```
 
-These were my results with 13177 ms:
+These were my results with 29790 ms:
 
-| Category                       | Metric / Subcategory        | Value                  |
-|--------------------------------|-----------------------------|------------------------|
-| **Memory Overview**            | Young Generation Allocated  | 2.92 GB                |
-|                                | Young Generation Peak       | 2.92 GB                |
-|                                | Old Generation Allocated    | 6.67 GB                |
-|                                | Old Generation Peak         | 2.94 GB                |
-|                                | Meta Space Allocated        | 10.56 MB               |
-|                                | Meta Space Peak             | 10.21 MB               |
-|                                | Total Allocated (Heap+Meta) | 9.59 GB                |
-|                                | Total Peak (Heap+Meta)      | 4.52 GB                |
-| **Key Performance Indicators** | Throughput                  | 90.806%                |
-|                                | CPU Time                    | 19s 380ms              |
-|                                | User Time                   | 14s 580ms              |
-|                                | System Time                 | 4s 800ms               |
-|                                | Avg GC Pause Time           | 83.7 ms                |
-|                                | Max GC Pause Time           | 120 ms                 |
-| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 13 (68.42%)            |
-|                                | 100 - 200 ms Pauses         | 6 (31.58%)             |
-| **GC Event Causes**            | Allocation Failure          | 19 events (avg 83.7ms) |
-| **GC Stats**                   | Total GC Count              | 19                     |
-|                                | Total GC Time               | 1s 590ms               |
-|                                | Full GCs                    | 0                      |
-| **Object Allocation Stats**    | Total Created Bytes         | 29.89 GB               |
-|                                | Total Promoted Bytes        | 3.06 GB                |
-|                                | Avg Creation Rate           | 1.73 GB/sec            |
-|                                | Avg Promotion Rate          | 181.05 MB/sec          |
+| Category                       | Metric / Subcategory        | Value                   |
+|--------------------------------|-----------------------------|-------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 2.92 GB                 |
+|                                | Old Generation Allocated    | 6.67 GB                 |
+|                                | Meta Space Allocated        | 10.75 MB                |
+|                                | Total Allocated (Heap+Meta) | 9.59 GB                 |
+| **Key Performance Indicators** | Throughput                  | 84.631%                 |
+|                                | CPU Time                    | 1 min                   |
+|                                | Avg GC Pause Time           | 124 ms                  |
+|                                | Max GC Pause Time           | 800 ms                  |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 25 (58.14%)             |
+|                                | 100 - 200 ms Pauses         | 15 (34.88%)             |
+|                                | 200 - 300 ms Pauses         | 1 (2.33%)               |
+|                                | 700 - 800 ms Pauses         | 2 (4.65%)               |
+| **GC Event Causes**            | Allocation Failure          | 41 events (avg 91.5 ms) |
+|                                | Ergonomics (Full GC)        | 2 events (avg 790 ms)   |
+| **Object Allocation Stats**    | Total Created Bytes         | 67.42 GB                |
+|                                | Total Promoted Bytes        | 7.32 GB                 |
+|                                | Avg Creation Rate           | 1.94 GB/sec             |
+|                                | Avg Promotion Rate          | 216.11 MB/sec           |
 
-![VM](images/ForkJoinPool_ParallelGC_2nd.png)
+![VM](images/ForkJoinPool_ParallelGC_2.png)
 
 #### Interpretation:
 
-- Throughput stayed pretty much the same. Meaning no matter how much memory I give it, it is going to remain the same.
+- Throughput improved immensely at 84.631%.
+
+#### Third Try
+
+In my third try, to increase Throughput I will increase heap memory to 15 GBs.
+
+```
+-Xms15g -Xmx15g -XX:+UseParallelGC -Xlog:gc*:gc.log  
+```
+
+These were my results with 28643 ms:
+
+| Category                       | Metric / Subcategory        | Value                  |
+|--------------------------------|-----------------------------|------------------------|
+| **Memory Overview**            | Young Generation Allocated  | 4.38 GB                |
+|                                | Old Generation Allocated    | 10.00 GB               |
+|                                | Meta Space Allocated        | 10.81 MB               |
+|                                | Total Allocated (Heap+Meta) | 14.39 GB               |
+| **Key Performance Indicators** | Throughput                  | 88.23%                 |
+|                                | CPU Time                    | 47.9 seconds           |
+|                                | Avg GC Pause Time           | 128 ms                 |
+|                                | Max GC Pause Time           | 260 ms                 |
+| **GC Pause Distribution**      | 0 - 100 ms Pauses           | 12 (40.0%)             |
+|                                | 100 - 200 ms Pauses         | 17 (56.7%)             |
+|                                | 200 - 300 ms Pauses         | 1 (3.3%)               |
+| **GC Event Causes**            | Allocation Failure          | 30 events (avg 128 ms) |
+| **Object Allocation Stats**    | Total Created Bytes         | 68.89 GB               |
+|                                | Total Promoted Bytes        | 7.4 GB                 |
+|                                | Avg Creation Rate           | 2.12 GB/sec            |
+|                                | Avg Promotion Rate          | 232.83 MB/sec          |
+
+![VM](images/ForkJoinPool_ParallelGC_3.png)
+
+#### Interpretation:
+
+- Throughput improved immensely at 88.23%
 
 ---
 
@@ -632,45 +653,35 @@ In my first try, I used this run configuration:
 -Xms7g -Xmx7g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-These were my results with 18910 ms:
+These were my results with 85502 ms:
 
-| Category                       | Metric / Subcategory          | Value                    |
-|--------------------------------|-------------------------------|--------------------------|
-| **Memory Overview**            | Heap Allocated                | 7 GB                     |
-|                                | Heap Peak                     | 6.3 GB                   |
-|                                | Metaspace Allocated           | 8 MB                     |
-|                                | Metaspace Peak                | 7 MB                     |
-|                                | Total Allocated (Heap+Meta)   | 7.01 GB                  |
-|                                | Total Peak (Heap+Meta)        | 6.31 GB                  |
-| **Key Performance Indicators** | Throughput                    | 99.997%                  |
-|                                | CPU Time                      | n/a                      |
-|                                | Avg GC Pause Time             | 0.0186 ms                |
-|                                | Max GC Pause Time             | 0.0530 ms                |
-| **GC Pause Distribution**      | 0 - 0.1 ms Pauses             | 45 (100.0%)              |
-| **GC Event Causes**            | Allocation Rate               | 7 events (max 0.0950 ms) |
-|                                | Allocation Stall              | 5 events (max 0.0730 ms) |
-|                                | Warmup                        | 3 events (max 0.0450 ms) |
-| **ZGC Concurrent Phase Times** | Concurrent Mark               | 9.72 s (avg 324 ms)      |
-|                                | Concurrent Relocate           | 1.60 s (avg 107 ms)      |
-|                                | Concurrent Select Relocation  | 425 ms (avg 28.4 ms)     |
-|                                | Concurrent Process Non-Strong | 58.7 ms (avg 3.92 ms)    |
-| **ZGC Pause Breakdown**        | Total Pause Time              | 0.835 ms                 |
-|                                | Pause Count                   | 45                       |
-|                                | Pause Min/Max Time            | 0.004 / 0.053 ms         |
-| **Object Allocation Stats**    | Total Created Bytes           | 13.16 GB                 |
-|                                | Total Promoted Bytes          | n/a                      |
-|                                | Avg Creation Rate             | 542.9 MB/sec             |
-|                                | Avg Promotion Rate            | n/a                      |
-| **Allocation Stall Metrics**   | Total Time                    | 14.56 s                  |
-|                                | Avg Stall Duration            | 125 ms                   |
-|                                | Max Stall Duration            | 285 ms                   |
+| Category                       | Metric / Subcategory        | Value               |
+|--------------------------------|-----------------------------|---------------------|
+| **Memory Overview**            | Heap Allocated              | 7 GB                |
+|                                | Heap Peak                   | 7 GB                |
+|                                | Meta Space Allocated        | 11 MB               |
+|                                | Total Allocated (Heap+Meta) | 7.01 GB             |
+| **Key Performance Indicators** | Throughput                  | 99.994%             |
+|                                | Avg GC Pause Time           | 0.0227 ms           |
+|                                | Max GC Pause Time           | 0.237 ms            |
+| **GC Pause Distribution**      | 0 - 0.1 ms Pauses           | 257 (98.5%)         |
+|                                | 0.1 - 0.2 ms Pauses         | 3 (1.2%)            |
+|                                | 0.2 - 0.3 ms Pauses         | 1 (0.3%)            |
+| **ZGC Phases**                 | Concurrent Mark             | 1 min 5 sec 896 ms  |
+|                                | Concurrent Relocate         | 4 sec 953 ms        |
+|                                | Pause Total Time            | 5.92 ms             |
+| **Object Allocation Stats**    | Total Created Bytes         | 43.92 GB            |
+|                                | Avg Creation Rate           | 488.22 MB/sec       |
+| **Allocation Stall Metrics**   | Total Time                  | 13 min 2 sec 890 ms |
+|                                | Avg Stall Duration          | 535 ms              |
+|                                | Max Stall Duration          | 1 sec 109 ms        |
 
-![VM](images/ForkJoinPool_ZGC_1st.png)
+![VM](images/ForkJoinPool_ZGC_1.png)
 
 #### Interpretation:
 
 - In the VisualVM the Heap exceeded the max memory.
-- Compared with the other, it ran way slower
+- Compared with the other, it ran way slower.
 
 #### Second Try
 
@@ -680,60 +691,59 @@ To improve the speed I decided to try and increase the heap memory.
 -Xms15g -Xmx15g -XX:+UseZGC -Xlog:gc*:gc.log 
 ```
 
-These were my results with 18242 ms:
+These were my results with 42062 ms:
 
-| Category                       | Metric / Subcategory        | Value                   |
-|--------------------------------|-----------------------------|-------------------------|
-| **Memory Overview**            | Heap Allocated              | 15 GB                   |
-|                                | Heap Peak                   | 12.23 GB                |
-|                                | Metaspace Allocated         | 10 MB                   |
-|                                | Metaspace Peak              | 10 MB                   |
-|                                | Total Allocated (Heap+Meta) | 15.01 GB                |
-|                                | Total Peak (Heap+Meta)      | 12.24 GB                |
-| **Key Performance Indicators** | Throughput                  | 99.998%                 |
-|                                | Total Execution Time        | 22.645 seconds          |
-|                                | Avg GC Pause Time           | 0.0190 ms               |
-|                                | Max GC Pause Time           | 0.0750 ms               |
-| **GC Pause Distribution**      | 0 - 0.1 ms Pauses           | 21 (100.0%)             |
-| **ZGC Phases**                 | Concurrent Mark Total       | 6.917 s (avg 494 ms)    |
-|                                | Concurrent Relocate Total   | 1.626 s (avg 232 ms)    |
-|                                | Pause Time (Total)          | 0.400 ms                |
-|                                | Pause Time (Min / Max)      | 0.004 / 0.075 ms        |
-| **Object Allocation Stats**    | Total Created Bytes         | 20.47 GB                |
-|                                | Avg Allocation Rate         | 925.86 MB/sec           |
-| **Allocation Stall Metrics**   | Total Time                  | 39.539 s                |
-|                                | Avg Stall Duration          | 2.081 s                 |
-|                                | Max Stall Duration          | 2.489 s                 |
-| **GC Causes**                  | Allocation Rate             | 3 events (max 0.104 ms) |
-|                                | Allocation Stall            | 1 event (0.115 ms)      |
-|                                | Warmup                      | 3 events (max 0.041 ms) |
+| Category                       | Metric / Subcategory        | Value         |
+|--------------------------------|-----------------------------|---------------|
+| **Memory Overview**            | Heap Allocated              | 15 GB         |
+|                                | Heap Peak                   | 13.47 GB      |
+|                                | Meta Space Allocated        | 10 MB         |
+|                                | Total Allocated (Heap+Meta) | 15.01 GB      |
+| **Key Performance Indicators** | Throughput                  | 99.998%       |
+|                                | Avg GC Pause Time           | 0.0225 ms     |
+|                                | Max GC Pause Time           | 0.0800 ms     |
+| **GC Pause Distribution**      | 0 - 0.1 ms Pauses           | 48 (100.0%)   |
+| **ZGC Phases**                 | Concurrent Mark             | 20 sec 152 ms |
+|                                | Concurrent Relocate         | 3 sec 679 ms  |
+|                                | Pause Total Time            | 1.08 ms       |
+| **Object Allocation Stats**    | Total Created Bytes         | 32.52 GB      |
+|                                | Avg Creation Rate           | 695.72 MB/sec |
+| **Allocation Stall Metrics**   | Total Time                  | 47 sec 366 ms |
+|                                | Avg Stall Duration          | 296 ms        |
+|                                | Max Stall Duration          | 643 ms        |
 
-![VM](images/ForkJoinPool_ZGC_2nd.png)
+![VM](images/ForkJoinPool_ZGC_2.png)
 
 #### Interpretation:
 
-- In the VisualVM the Heap did not exceed the limit but still ran the same speed. Seems no matter how much memory I
-  does not run faster.
+- The speed improved but still no better than G1GC
 
 ## ♻️ Garbage Collection Tuning – Conclusion
 
 Across the various GC implementations tested (G1GC, ParallelGC, ZGC), each showed distinct trade-offs between
 throughput, pause times, and execution speed:
 
-- **G1GC** achieved **balanced performance** with configurable pause limits and consistent throughput (~90.8%).
-  Increasing heap memory reduced pause duration slightly, but throughput gains plateaued early.
-- **ParallelGC** showed **similar performance to G1GC** but with **higher pause durations** and slightly higher memory
-  usage.
-- **ZGC** delivered **ultra-low pause times** (below 0.1 ms), nearly eliminating latency, but **overall execution time
-  was worse**, likely due to background relocation phases and lower object allocation throughput.
+- **G1GC** showed **balanced** and **consistent performance**, delivering moderate pause times (38.7 ms avg), high
+  throughput (~
+  90.6%), and a respectable execution time of **28,064** ms. Increasing the heap size to 15 GB helped reduce **GC
+  overhead** and
+  stabilize **pause times**, but throughput **plateaued**, suggesting further gains were limited.
+- ParallelGC, initially **slow** and **pause-heavy**, improved significantly when tuned. With 15 GB heap, it achieved an
+  execution time of **27,643** ms, throughput of 88.23%, and lower max pauses (260 ms) compared to earlier runs. It was
+  the
+  fastest GC configuration overall, but with slightly higher GC overhead than G1GC.
+- ZGC delivered near-zero pause times (0.0225 ms avg), making it ideal for **latency-sensitive** applications. However,
+  even
+  with 15 GB of heap, its execution time remained the highest at **42,062** ms. Allocation stall durations were still
+  present (296 ms avg), and memory usage was significantly higher.
 
 ### 🔁 GC Strategy Comparison Table
 
-| GC Type    | Exec Time (ms) | Throughput | Avg Pause (ms) | Max Pause (ms) | Heap Used | Notes                               |
-|------------|----------------|------------|----------------|----------------|-----------|-------------------------------------|
-| G1GC       | 11,877         | 90.565%    | 38.7           | 130            | 4.48 GB   | Best performance overall            |
-| ParallelGC | 11,904         | 90.254%    | 55.4           | 120            | 4.35 GB   | Slightly more pause than G1GC       |
-| ZGC        | 18,242         | 99.998%    | 0.019          | 0.075          | 12.24 GB  | Lowest latency, but slowest overall |
+| GC Type        | Exec Time (ms) | Throughput | Avg Pause (ms) | Max Pause (ms) | Heap Used | Notes                                   |
+|----------------|----------------|------------|----------------|----------------|-----------|-----------------------------------------|
+| **G1GC**       | 28,064         | 90.565%    | 38.7           | 130            | 4.48 GB   | Best trade-off between speed and memory |
+| **ParallelGC** | 28,643         | 88.23%     | 128            | 260            | 14.39 GB  | Fastest execution time after tuning     |
+| **ZGC**        | 42,062         | 99.998%    | 0.0225         | 0.0800         | 13.48 GB  | Lowest latency, but slowest performance |
 
 ### 🧠 Final Insight
 
@@ -769,6 +779,7 @@ throughput, pause times, and execution speed:
 - **Tools**: VisualVM, Java Flight Recorder (JFR), Async Profiler, Prometheus/Grafana
 - **Dataset**: Wikipedia XML dump max pages - 20k, 40k, 80k pages
 - **Running configuration**:
+
 ```bash
   -Xms10g -Xmx10g -XX:+UseG1GC -XX:MaxGCPauseMillis=80 -Xlog:gc*:gc.log
 ```
@@ -809,12 +820,16 @@ throughput, pause times, and execution speed:
 
 #### CPU & Memory Utilization
 
-At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a `java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
+At first, we tried to run the program with 100k pages and 8 threads, but it resulted in a
+`java.lang.OutOfMemoryError: Java heap space` error (see image bellow)).
 ![img.png](images/java_heap_space_error.png)
-This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number of pages to 10k, 40k and 80k.   
+This was because the heap size was not enough to handle the data, so for this performance analysis we reduced the number
+of pages to 10k, 40k and 80k.
 
 ##### Sequential
+
 ###### VisualVM Monitor Snapshots
+
 Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 40 k, and 80 k pages:
 
 ***80k***
@@ -824,23 +839,27 @@ Below are the VisualVM **Monitor** views for the sequential WordCount at 20 k, 4
 ***20k***
 ![img.png](images/monitor_sequential_20k.png)
 
-> **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory footprint exceeded available heap.
+> **Note:** At 80 k pages the JVM threw an OutOfMemoryError despite `-Xmx10g`, indicating the sequential parser’s memory
+> footprint exceeded available heap.
 
-| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|--------|----------|---------|---------|-------------------------|-------------------------|
+| Pages    | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|----------|----------|---------|---------|-------------------------|-------------------------|
 | **20 k** | 20 %     | 15 %    | 1.4 %   | 1.86 GB → 2.98 GB       | 0.78 GB → 2.6 GB        |
 | **40 k** | 22 %     | 15 %    | 0.3 %   | 4.29 GB → 4.29 GB       | 3.45 GB → 3.80 GB       |
 | **80 k** | 60 %     | 50 %    | 11.9 %  | 0.15 GB → 0.15 GB       | 0.04 GB → 0.04 GB       |
 
 **Interpretation:**
+
 - **CPU**: Remains low (≤ 20 %) until 80 k pages, where it spikes to ~60 % on a single core—no parallelism.
 - **GC**: Minimal at 20 k/40 k, but jumps at 80 k due to object churn before the OOME.
 - **Heap**:
-  - At 20 k, heap grows modestly.
-  - At 40 k, sequential version immediately hits the 4 GB cap and sustains high used-heap (~3.8 GB).
-  - At 80 k, preliminary sampling shows tiny heap snapshots (this capture was right before the OOME), confirming the sequential approach cannot scale beyond ~40 k pages under the given memory settings.
+    - At 20 k, heap grows modestly.
+    - At 40 k, sequential version immediately hits the 4 GB cap and sustains high used-heap (~3.8 GB).
+    - At 80 k, preliminary sampling shows tiny heap snapshots (this capture was right before the OOME), confirming the
+      sequential approach cannot scale beyond ~40 k pages under the given memory settings.
 
-This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory footprint—compared to the threaded approaches.
+This clearly demonstrates the **limits** of the sequential model—both in CPU utilization (single-core bound) and memory
+footprint—compared to the threaded approaches.
 
 ![img.png](images/console_sequential_80k.png)
 ![img.png](images/console_sequential_40k.png)
@@ -850,7 +869,8 @@ This clearly demonstrates the **limits** of the sequential model—both in CPU u
 
 Based on the VisualVM **Monitor** view for the Thread Pool WordCount run:
 
-###### VisualVM Monitor Snapshots 
+###### VisualVM Monitor Snapshots
+
 ***80k***
 ![img.png](images/monitor_with_thread_pool_80k.png)
 ***40k***
@@ -860,20 +880,23 @@ Based on the VisualVM **Monitor** view for the Thread Pool WordCount run:
 
 ###### Scalability Analysis: Thread-Pool Runs
 
-| Pages  | CPU Peak | CPU Average | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|--------|----------|-------------|---------|-------------------------|-------------------------|
-| **20 k** | 75 %    | 60 %        | 1.3 %   | 2.6 GB → 3.0 GB         | 1.8 GB → 2.5 GB         |
-| **40 k** | 82.5 %  | 78 %        | 1.8 %   | 2.0 GB → 4.0 GB         | 1.4 GB → 2.9 GB         |
-| **80 k** | 78 %    | 70 %        | 7 %     | 2.8 GB → 4.0 GB         | 1.7 GB → 3.8 GB         |
+| Pages    | CPU Peak | CPU Average | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|----------|----------|-------------|---------|-------------------------|-------------------------|
+| **20 k** | 75 %     | 60 %        | 1.3 %   | 2.6 GB → 3.0 GB         | 1.8 GB → 2.5 GB         |
+| **40 k** | 82.5 %   | 78 %        | 1.8 %   | 2.0 GB → 4.0 GB         | 1.4 GB → 2.9 GB         |
+| **80 k** | 78 %     | 70 %        | 7 %     | 2.8 GB → 4.0 GB         | 1.7 GB → 3.8 GB         |
 
 **Notes:**
-- **CPU**: All runs sustain high utilization, peaking above 75 % of the M3’s eight cores.
-- **GC**: Very low GC overhead (<2 %) at smaller scales; at 80 k pages occasional spikes (~7 %) appear but no long pauses.
-- **Heap**:
-  - Initial heap sizing grows with data volume (2–2.8 GB), and the JVM auto-expands up to the 4 GB cap as needed.
-  - Used-heap remains well below the cap at 20 k/40 k, but at 80 k it climbs to ~3.8 GB.
 
-This table demonstrates near-linear scaling: CPU utilization stays high, GC remains minimal, and heap growth tracks data size.
+- **CPU**: All runs sustain high utilization, peaking above 75 % of the M3’s eight cores.
+- **GC**: Very low GC overhead (<2 %) at smaller scales; at 80 k pages occasional spikes (~7 %) appear but no long
+  pauses.
+- **Heap**:
+    - Initial heap sizing grows with data volume (2–2.8 GB), and the JVM auto-expands up to the 4 GB cap as needed.
+    - Used-heap remains well below the cap at 20 k/40 k, but at 80 k it climbs to ~3.8 GB.
+
+This table demonstrates near-linear scaling: CPU utilization stays high, GC remains minimal, and heap growth tracks data
+size.
 
 ![img.png](images/console_with_thread_pool_80k.png)
 
@@ -892,28 +915,29 @@ Below are the VisualVM **Monitor** views for the Fork/Join implementation at 20 
 ***40k***
 ![img.png](images/monitor_fork_join_pool_40k.png)
 ***20k***
-![img.png](images/monitor_fork_join_pool_20k.png).  
+![img.png](images/monitor_fork_join_pool_20k.png).
 
-> **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the Fork/Join approach hit memory limits at this scale.
+> **Note:** At 80 k pages the JVM eventually threw an OutOfMemoryError despite the 10 GB heap, indicating that even the
+> Fork/Join approach hit memory limits at this scale.
 
-| Pages  | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
-|--------|----------|---------|---------|-------------------------|-------------------------|
-| **20 k** | 57 %    | ~56 %   | 0.7 %   | 2.6 GB → 4.0 GB         | 2.2 GB → 3.2 GB         |
-| **40 k** | 65 %    | ~60 %   | 5.9 %   | 3.7 GB → 4.0 GB         | 3.7 GB → 3.9 GB         |
-| **80 k** | 88 %    | ~75 %   | 12 %    | 2.5 GB → 4.0 GB         | 2.2 GB → 4.2 GB         |
+| Pages    | CPU Peak | CPU Avg | GC Peak | Heap Size (init → peak) | Used Heap (init → peak) |
+|----------|----------|---------|---------|-------------------------|-------------------------|
+| **20 k** | 57 %     | ~56 %   | 0.7 %   | 2.6 GB → 4.0 GB         | 2.2 GB → 3.2 GB         |
+| **40 k** | 65 %     | ~60 %   | 5.9 %   | 3.7 GB → 4.0 GB         | 3.7 GB → 3.9 GB         |
+| **80 k** | 88 %     | ~75 %   | 12 %    | 2.5 GB → 4.0 GB         | 2.2 GB → 4.2 GB         |
 
 **Interpretation:**
+
 - **CPU** utilization scales up, peaking near full usage of available cores at 80 k pages.
 - **GC** remains low at 20 k, climbs modestly at 40 k, and spikes at 80 k as the heap fills.
-- **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom than Thread-Pool at larger scales.
-
+- **Heap growth** shows the JVM expanding quickly to the 4 GB cap; the Fork/Join version uses slightly more headroom
+  than Thread-Pool at larger scales.
 
 ![img.png](images/console_fork_join_pool_80k.png)
 ![img_1.png](images/console_fork_join_pool_40k.png)
 ![img.png](images/console_fork_join_pool_20k.png)
 
 ##### CompletableFuture
-
 
 #### Scalability Analysis
 
